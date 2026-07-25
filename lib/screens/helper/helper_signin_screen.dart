@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../screens/helper/helper_register_screen.dart';
 
 class HelperSignInScreen extends StatefulWidget {
   const HelperSignInScreen({super.key});
@@ -113,7 +114,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 12),
 
-                 // Tempery Messege, remove later
+              // Tempery Messege, remove later
               Align(
                 alignment: Alignment.center,
                 child: TextButton(
@@ -135,11 +136,11 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                 child: TextButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Forgot Password Triggerd!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                      const SnackBar(
+                        content: Text('Forgot Password Triggerd!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Forgot Password?',
@@ -165,11 +166,11 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                   //show sign in messege
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Signin Triggerd!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                      const SnackBar(
+                        content: Text('Signin Triggerd!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   },
                   child: const Text('Sign In'),
                 ),
@@ -177,6 +178,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 28),
 
+              // TODO: Implement Google SSO authentication
               // Divider "or"
               Row(
                 children: [
@@ -212,14 +214,14 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                     ),
                     foregroundColor: CareDropTheme.textPrimary,
                   ),
-                  //show register messege
+                  // load the helper registration interface
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Register Triggerd!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HelperRegisterScreen(),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Become a Helper',
