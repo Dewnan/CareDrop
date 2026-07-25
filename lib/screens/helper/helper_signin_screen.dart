@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../screens/helper/helper_register_screen.dart';
+import '../../screens/helper/helper_dashboard_screen.dart';
 
 class HelperSignInScreen extends StatefulWidget {
   const HelperSignInScreen({super.key});
@@ -13,6 +14,14 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto fill mock data for testing
+    _emailController.text = 'dewnanc@proton.me';
+    _passwordController.text = 'password123';
+  }
 
   // clean fields on destroy
   @override
@@ -163,13 +172,24 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.tealPrimary,
                   ),
-                  //show sign in messege
+                  // send to dashboard after field validation
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Signin Triggerd!'),
-                        duration: Duration(seconds: 2),
+                    if (_emailController.text.trim().isEmpty ||
+                        _passwordController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in both Email and Password.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HelperMainMainScreen(),
                       ),
+                      (route) => false,
                     );
                   },
                   child: const Text('Sign In'),

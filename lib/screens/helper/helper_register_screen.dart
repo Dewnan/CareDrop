@@ -1,4 +1,7 @@
+import 'package:caredrop/screens/helper/helper_dashboard_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 
 class HelperRegisterScreen extends StatefulWidget {
@@ -16,6 +19,17 @@ class _HelperRegisterScreenState extends State<HelperRegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto fill mock data for testing
+    _fullNameController.text = 'Dewnan Chamithka';
+    _nicController.text = '200300000000';
+    _phoneController.text = '+94 70 000 0000';
+    _emailController.text = 'dewnanc@proton.me';
+    _passwordController.text = 'password123';
+  }
 
   // clear
   @override
@@ -173,14 +187,34 @@ class _HelperRegisterScreenState extends State<HelperRegisterScreen> {
                     backgroundColor: CareDropTheme.tealPrimary,
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Submit Triggerd!'),
-                        duration: Duration(seconds: 2),
-                      ),
+                    if (_fullNameController.text.trim().isEmpty ||
+                        _nicController.text.trim().isEmpty ||
+                        _phoneController.text.trim().isEmpty ||
+                        _emailController.text.trim().isEmpty ||
+                        _passwordController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in all registration fields.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    context.read<CareDropAppState>().updateHelperInfo(
+                      name: _fullNameController.text,
+                      ic: _nicController.text,
+                      phone: _phoneController.text,
+                      email: _emailController.text,
                     );
 
-                    Navigator.pop(context);
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HelperMainMainScreen(),
+                      ),
+                      (route) => false,
+                    );
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
