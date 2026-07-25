@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../../screens/common/splash_role_screen.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
@@ -16,7 +17,7 @@ class LandingScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              
+
               // Heart Logo Box
               // Logos will be change later
               Container(
@@ -74,20 +75,20 @@ class LandingScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    context.read<CareDropAppState>().setRole(AppRole.roleSelection);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Landing Page test OK!'),
-                        duration: Duration(seconds: 2),
+                    context.read<CareDropAppState>().setRole(
+                      AppRole.roleSelection,
+                    );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const SplashRoleScreen(), // send to role selection page
                       ),
                     );
                   },
                   child: const Text(
                     'Get Started',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
