@@ -194,7 +194,9 @@ class _HelperRegisterScreenState extends State<HelperRegisterScreen> {
                         _passwordController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please fill in all registration fields.'),
+                          content: Text(
+                            'Please fill in all registration fields.',
+                          ),
                           backgroundColor: Colors.red,
                         ),
                       );
