@@ -4,6 +4,7 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 
 import 'earnings_screen.dart';
+import 'profile_screen.dart';
 
 // main helper navigation screen container
 class HelperMainMainScreen extends StatelessWidget {
@@ -15,9 +16,9 @@ class HelperMainMainScreen extends StatelessWidget {
 
     final List<Widget> pages = [
       const HelperDashboardView(), // Index 0: Home
-      const Center(child: Text('Tasks Screen Coming Soon')), // Index 1: Tasks
+      const Center(child: Text('Task Screen Coming Soon')), // Index 1: Tasks
       const EarningsScreen(), // Index 2: Earnings
-      const Center(child: Text('Profile Screen Coming Soon')), // Index 3: Profile
+      const ProfileScreen(), // Index 3: Profile
     ];
 
     // Bottom Navigation Bar
