@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 
+import 'earnings_screen.dart';
+
 // main helper navigation screen container
 class HelperMainMainScreen extends StatelessWidget {
   const HelperMainMainScreen({super.key});
@@ -12,12 +14,15 @@ class HelperMainMainScreen extends StatelessWidget {
     final appState = context.watch<CareDropAppState>();
 
     final List<Widget> pages = [
-      const HelperDashboardView(),
+      const HelperDashboardView(), // Index 0: Home
+      const Center(child: Text('Tasks Screen Coming Soon')), // Index 1: Tasks
+      const EarningsScreen(), // Index 2: Earnings
+      const Center(child: Text('Profile Screen Coming Soon')), // Index 3: Profile
     ];
 
     // Bottom Navigation Bar
     return Scaffold(
-      body: pages[0], // Display main dashboard view
+      body: pages[appState.currentTab], // Displays screen according to selected tab
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -27,16 +32,7 @@ class HelperMainMainScreen extends StatelessWidget {
         ),
         child: BottomNavigationBar(
           currentIndex: appState.currentTab,
-          onTap: (index) {
-            appState.setTab(index);
-            final tabNames = ['Home', 'Tasks', 'Earnings', 'Profile'];
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${tabNames[index]} Tab Triggered!'),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          },
+          onTap: (index) => appState.setTab(index),
           backgroundColor: Colors.white,
           elevation: 0,
           type: BottomNavigationBarType.fixed,
@@ -230,12 +226,15 @@ class HelperDashboardView extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    // Today earnings stat box
+                    // Today earnings stat box (tap to view earnings screen)
                     Expanded(
-                      child: _StatBox(
-                        value: 'Rs.${user.todayEarnings.toInt()}',
-                        label: 'Today',
-                        valueColor: CareDropTheme.tealPrimary,
+                      child: GestureDetector(
+                        onTap: () => appState.setTab(2),
+                        child: _StatBox(
+                          value: 'Rs.${user.todayEarnings.toInt()}',
+                          label: 'Today',
+                          valueColor: CareDropTheme.tealPrimary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
