@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 
+import 'task_browse_screen.dart';
+import 'task_details_screen.dart';
+import 'task_status_screen.dart';
+import 'helper_map_screen.dart';
 import 'earnings_screen.dart';
 import 'profile_screen.dart';
 
@@ -16,9 +20,9 @@ class HelperMainMainScreen extends StatelessWidget {
 
     final List<Widget> pages = [
       const HelperDashboardView(), // Index 0: Home
-      const Center(child: Text('Task Screen Coming Soon')), // Index 1: Tasks
-      const EarningsScreen(), // Index 2: Earnings
-      const ProfileScreen(), // Index 3: Profile
+      const TaskBrowseScreen(),    // Index 1: Tasks
+      const EarningsScreen(),      // Index 2: Earnings
+      const ProfileScreen(),       // Index 3: Profile
     ];
 
     // Bottom Navigation Bar
@@ -339,12 +343,12 @@ class HelperDashboardView extends StatelessWidget {
                                       vertical: 10,
                                     ),
                                   ),
-                                  // Popup trigger message for view task
+                                  // Open task status screen for active task
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('View Task Triggered!'),
-                                        duration: Duration(seconds: 2),
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const TaskStatusScreen(),
                                       ),
                                     );
                                   },
@@ -363,12 +367,12 @@ class HelperDashboardView extends StatelessWidget {
                                       vertical: 10,
                                     ),
                                   ),
-                                  // Popup trigger message for navigation
+                                  // Open helper map navigation screen
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Navigate Triggered!'),
-                                        duration: Duration(seconds: 2),
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const HelperMapScreen(),
                                       ),
                                     );
                                   },
@@ -401,14 +405,7 @@ class HelperDashboardView extends StatelessWidget {
                       ),
                       // See all tasks button trigger
                       TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('See All Tasks Triggered!'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                        onPressed: () => appState.setTab(1),
                         child: const Text(
                           'See All',
                           style: TextStyle(
@@ -435,10 +432,10 @@ class HelperDashboardView extends StatelessWidget {
                       return _DashboardTaskTile(
                         task: task,
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Task Clicked: ${task.title}'),
-                              duration: const Duration(seconds: 2),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TaskDetailsScreen(task: task),
                             ),
                           );
                         },
