@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/user_model.dart';
+import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import 'patient_task_type_screen.dart';
 import 'patient_task_history_screen.dart';
@@ -53,13 +56,17 @@ class _PatientHomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<CareDropAppState>();
+    final activeTask = appState.activeTask;
+    final tasks = appState.availableTasks;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Top Blue Banner
           Container(
-            color: CareDropTheme.tealPrimary,
+            color: CareDropTheme.royalBlue,
             padding: const EdgeInsets.fromLTRB(20, 56, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,17 +74,17 @@ class _PatientHomeTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Good morning,',
+                        const Text(
+                          'Hello,',
                           style: TextStyle(color: Colors.white70, fontSize: 13),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          'Siti Aminah',
-                          style: TextStyle(
+                          MockUsers.patientUser.fullName,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -94,38 +101,39 @@ class _PatientHomeTab extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Active Task Card inside header
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Active Task',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Medication Pickup',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                if (activeTask != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Active Task',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Ahmad Razif is on the way',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          activeTask.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${activeTask.hospital} · ${activeTask.deadline}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -156,7 +164,7 @@ class _PatientHomeTab extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: CareDropTheme.tealPrimary,
+                            color: CareDropTheme.royalBlue,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(Icons.add, color: Colors.white, size: 24),
@@ -203,7 +211,7 @@ class _PatientHomeTab extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildQuickAction(context, 'Pickup', Icons.inventory_2_outlined, const Color(0xFFEFF6FF), CareDropTheme.tealPrimary),
+                    _buildQuickAction(context, 'Pickup', Icons.inventory_2_outlined, const Color(0xFFEFF6FF), CareDropTheme.royalBlue),
                     const SizedBox(width: 10),
                     _buildQuickAction(context, 'Delivery', Icons.local_shipping_outlined, const Color(0xFFECFDF5), const Color(0xFF10B981)),
                     const SizedBox(width: 10),
@@ -227,11 +235,16 @@ class _PatientHomeTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                _buildRecentTaskItem('Medication Pickup', 'PPUM KL · Today', 'Active', const Color(0xFFFEF3C7), const Color(0xFFD97706)),
-                const SizedBox(height: 10),
-                _buildRecentTaskItem('Document Submission', 'HKL KL · Yesterday', 'Done', const Color(0xFFDCFCE7), const Color(0xFF16A34A)),
-                const SizedBox(height: 10),
-                _buildRecentTaskItem('Pharmacy Run', 'Hospital Ampang · 3d ago', 'Done', const Color(0xFFDCFCE7), const Color(0xFF16A34A)),
+                ...tasks.map((t) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildRecentTaskItem(
+                    t.title,
+                    '${t.hospital} · ${t.startTimeStr}',
+                    t.isUrgent ? 'Active' : 'Done',
+                    t.isUrgent ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
+                    t.isUrgent ? const Color(0xFFD97706) : const Color(0xFF16A34A),
+                  ),
+                )),
               ],
             ),
           ),

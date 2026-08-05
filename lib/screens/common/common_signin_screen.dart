@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../helper/helper_dashboard_screen.dart';
@@ -21,8 +22,9 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
   @override
   void initState() {
     super.initState();
-    _emailController.text = 'dewnanc@proton.me';
-    _passwordController.text = 'password123';
+    // Default to Patient demo user
+    _emailController.text = MockUsers.patientUser.email;
+    _passwordController.text = MockUsers.patientUser.password;
   }
 
   @override
@@ -32,11 +34,15 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
     super.dispose();
   }
 
+  void _fillMockUser(UserModel user) {
+    setState(() {
+      _emailController.text = user.email;
+      _passwordController.text = user.password;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<CareDropAppState>();
-    final isPatient = appState.currentRole == AppRole.patient;
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -53,9 +59,9 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                isPatient ? 'Patient Sign in' : 'Helper Sign in',
-                style: const TextStyle(
+              const Text(
+                'Sign in',
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: CareDropTheme.textPrimary,
@@ -64,15 +70,62 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
 
               const SizedBox(height: 6),
 
-              Text(
-                isPatient ? 'Welcome back to CareDrop' : 'Start earning with CareDrop',
-                style: const TextStyle(
+              const Text(
+                'Welcome back to CareDrop',
+                style: TextStyle(
                   fontSize: 14,
                   color: CareDropTheme.textSecondary,
                 ),
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 24),
+
+              // Demo User Quick Fill Bar
+              const Text(
+                'QUICK DEMO ACCOUNTS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: CareDropTheme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(
+                          color: _emailController.text == MockUsers.patientUser.email
+                              ? CareDropTheme.royalBlue
+                              : CareDropTheme.cardBorderColor,
+                        ),
+                      ),
+                      onPressed: () => _fillMockUser(MockUsers.patientUser),
+                      child: const Text('Patient Demo', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        side: BorderSide(
+                          color: _emailController.text == MockUsers.helperUser.email
+                              ? CareDropTheme.royalBlue
+                              : CareDropTheme.cardBorderColor,
+                        ),
+                      ),
+                      onPressed: () => _fillMockUser(MockUsers.helperUser),
+                      child: const Text('Helper Demo', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
 
               const Text(
                 'EMAIL / PHONE',
@@ -86,7 +139,7 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(hintText: 'dewnanc@proton.me'),
+                decoration: const InputDecoration(hintText: 'email@caredrop.lk'),
               ),
 
               const SizedBox(height: 20),
@@ -154,8 +207,10 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                     backgroundColor: CareDropTheme.royalBlue,
                   ),
                   onPressed: () {
-                    if (_emailController.text.trim().isEmpty ||
-                        _passwordController.text.trim().isEmpty) {
+                    final email = _emailController.text.trim();
+                    final password = _passwordController.text.trim();
+
+                    if (email.isEmpty || password.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Please fill in Email/Phone and Password.'),
@@ -164,16 +219,20 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                       );
                       return;
                     }
-                    if (isPatient) {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
-                        (route) => false,
-                      );
-                    } else {
+
+                    // Route based on mock user email or helper keywords
+                    if (email == MockUsers.helperUser.email || email.contains('helper')) {
+                      context.read<CareDropAppState>().setRole(AppRole.helper);
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const HelperMainMainScreen()),
+                        (route) => false,
+                      );
+                    } else {
+                      context.read<CareDropAppState>().setRole(AppRole.patient);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
                         (route) => false,
                       );
                     }

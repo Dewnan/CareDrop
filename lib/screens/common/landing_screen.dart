@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
-import '../../screens/common/splash_role_screen.dart';
+import 'common_signin_screen.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
@@ -75,14 +73,10 @@ class LandingScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    context.read<CareDropAppState>().setRole(
-                      AppRole.roleSelection,
-                    );
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            const SplashRoleScreen(), // send to role selection page
+                        builder: (_) => const CommonSignInScreen(),
                       ),
                     );
                   },

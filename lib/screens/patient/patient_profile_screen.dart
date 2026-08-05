@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
 import '../../theme/app_theme.dart';
-import 'patient_signin_screen.dart';
+import '../common/common_signin_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   const PatientProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    const user = MockUsers.patientUser;
+
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
       body: SingleChildScrollView(
@@ -15,7 +18,7 @@ class PatientProfileScreen extends StatelessWidget {
             // Top Blue Header
             Container(
               width: double.infinity,
-              color: CareDropTheme.tealPrimary,
+              color: CareDropTheme.royalBlue,
               padding: const EdgeInsets.fromLTRB(20, 56, 20, 24),
               child: Row(
                 children: [
@@ -42,18 +45,18 @@ class PatientProfileScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Siti Aminah binti Rahman',
-                          style: TextStyle(
+                        Text(
+                          user.fullName,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
-                          'Guardian · +60 12-345 6789',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        Text(
+                          '${user.role} · ${user.phone}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
                         ),
                         const SizedBox(height: 8),
                         Container(
@@ -142,7 +145,7 @@ class PatientProfileScreen extends StatelessWidget {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const PatientSignInScreen(),
+                            builder: (_) => const CommonSignInScreen(),
                           ),
                           (route) => false,
                         );
