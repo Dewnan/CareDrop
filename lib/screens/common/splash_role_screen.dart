@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../helper/helper_signin_screen.dart';
 
 class SplashRoleScreen extends StatelessWidget {
   const SplashRoleScreen({super.key});
@@ -86,10 +87,10 @@ class SplashRoleScreen extends StatelessWidget {
                 borderColor: CareDropTheme.tealPrimary,
                 onTap: () {
                   context.read<CareDropAppState>().setRole(AppRole.helper);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Helper Role selected!'),
-                      duration: Duration(seconds: 2),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HelperSignInScreen(),
                     ),
                   );
                 },
