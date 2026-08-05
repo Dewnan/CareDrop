@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import 'patient_task_specifications_screen.dart';
+import 'patient_create_task_form_screen.dart';
 
 class PatientTaskTypeScreen extends StatelessWidget {
   const PatientTaskTypeScreen({super.key});
@@ -9,46 +9,46 @@ class PatientTaskTypeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final taskTypes = [
       {
-        'title': 'Medication Pickup',
-        'subtitle': 'Collect prescription from pharmacy',
+        'title': 'Medicine Pickup',
+        'subtitle': 'Collect prescription & medicine from pharmacy',
         'icon': Icons.inventory_2_outlined,
         'bgColor': const Color(0xFFEFF6FF),
-        'iconColor': CareDropTheme.tealPrimary,
+        'iconColor': CareDropTheme.royalBlue,
       },
       {
-        'title': 'Hospital Delivery',
-        'subtitle': 'Deliver items to patient at ward',
-        'icon': Icons.local_shipping_outlined,
+        'title': 'Food Pickup',
+        'subtitle': 'Deliver food/meals to patient at hospital ward',
+        'icon': Icons.fastfood_outlined,
         'bgColor': const Color(0xFFECFDF5),
         'iconColor': const Color(0xFF10B981),
       },
       {
-        'title': 'Patient Escort',
-        'subtitle': 'Accompany patient to appointments',
-        'icon': Icons.access_time,
-        'bgColor': const Color(0xFFF5F3FF),
-        'iconColor': const Color(0xFF8B5CF6),
-      },
-      {
-        'title': 'Document Filing',
-        'subtitle': 'Submit or collect medical documents',
+        'title': 'Document Delivery',
+        'subtitle': 'Submit or collect medical documents & reports',
         'icon': Icons.description_outlined,
         'bgColor': const Color(0xFFFEF3C7),
         'iconColor': const Color(0xFFF59E0B),
       },
       {
-        'title': 'General Errand',
-        'subtitle': 'Any other care-related task',
-        'icon': Icons.error_outline,
-        'bgColor': const Color(0xFFFEE2E2),
-        'iconColor': const Color(0xFFEF4444),
-      },
-      {
-        'title': 'Queue Management',
-        'subtitle': 'Hold queue on behalf of patient',
-        'icon': Icons.check_circle_outline,
+        'title': 'Queue/Token Assistance',
+        'subtitle': 'Hold queue/token on behalf of patient',
+        'icon': Icons.confirmation_number_outlined,
         'bgColor': const Color(0xFFDCFCE7),
         'iconColor': const Color(0xFF16A34A),
+      },
+      {
+        'title': 'Pharmacy Purchase',
+        'subtitle': 'Purchase non-prescription medical supplies',
+        'icon': Icons.local_pharmacy_outlined,
+        'bgColor': const Color(0xFFF5F3FF),
+        'iconColor': const Color(0xFF8B5CF6),
+      },
+      {
+        'title': 'Other',
+        'subtitle': 'Any other care-related hospital task',
+        'icon': Icons.more_horiz,
+        'bgColor': const Color(0xFFFEE2E2),
+        'iconColor': const Color(0xFFEF4444),
       },
     ];
 
@@ -95,8 +95,8 @@ class PatientTaskTypeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => PatientTaskSpecificationsScreen(
-                          taskTypeName: type['title'] as String,
+                        builder: (_) => PatientCreateTaskFormScreen(
+                          initialTaskType: type['title'] as String,
                         ),
                       ),
                     );
