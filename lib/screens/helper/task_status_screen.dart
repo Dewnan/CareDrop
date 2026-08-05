@@ -44,7 +44,7 @@ class TaskStatusScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 decoration: BoxDecoration(
-                  color: CareDropTheme.tealPrimary,
+                  color: CareDropTheme.royalBlue,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -132,7 +132,7 @@ class TaskStatusScreen extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: CareDropTheme.tealPrimary,
+                    backgroundColor: CareDropTheme.royalBlue,
                   ),
                   icon: const Icon(Icons.camera_alt_outlined, size: 20),
                   label: const Text(
@@ -184,7 +184,7 @@ class _ProgressCheckRow extends StatelessWidget {
             color: isCompleted
                 ? const Color(0xFFDCFCE7)
                 : isCurrent
-                    ? CareDropTheme.tealPrimary
+                    ? CareDropTheme.royalBlue
                     : const Color(0xFFE2E8F0),
             borderRadius: BorderRadius.circular(6),
           ),
@@ -196,7 +196,7 @@ class _ProgressCheckRow extends StatelessWidget {
                     : Icons.brightness_1,
             size: 14,
             color: isCompleted
-                ? CareDropTheme.tealPrimary
+                ? CareDropTheme.royalBlue
                 : isCurrent
                     ? Colors.white
                     : Colors.transparent,
@@ -223,7 +223,7 @@ class _ProgressCheckRow extends StatelessWidget {
             child: Text(
               currentBadge!,
               style: const TextStyle(
-                color: CareDropTheme.tealPrimary,
+                color: CareDropTheme.royalBlue,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),

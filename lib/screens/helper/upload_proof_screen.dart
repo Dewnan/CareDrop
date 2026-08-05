@@ -123,7 +123,7 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: CareDropTheme.tealPrimary,
+                    backgroundColor: CareDropTheme.royalBlue,
                   ),
                   onPressed: () {
                     context.read<CareDropAppState>().completeActiveTask();
@@ -177,7 +177,7 @@ class _UploadCard extends StatelessWidget {
           color: isDone ? const Color(0xFFF0FDF4) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isDone ? CareDropTheme.tealPrimary : CareDropTheme.cardBorderColor,
+            color: isDone ? CareDropTheme.royalBlue : CareDropTheme.cardBorderColor,
             width: isDone ? 1.5 : 1,
           ),
         ),
@@ -189,11 +189,11 @@ class _UploadCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDone ? const Color(0xFFDCFCE7) : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDone ? CareDropTheme.tealPrimary : CareDropTheme.cardBorderColor),
+                border: Border.all(color: isDone ? CareDropTheme.royalBlue : CareDropTheme.cardBorderColor),
               ),
               child: Icon(
                 isDone ? Icons.check_circle_rounded : icon,
-                color: isDone ? CareDropTheme.tealPrimary : CareDropTheme.textMuted,
+                color: isDone ? CareDropTheme.royalBlue : CareDropTheme.textMuted,
                 size: 22,
               ),
             ),
@@ -225,7 +225,7 @@ class _UploadCard extends StatelessWidget {
               const Text(
                 'Done',
                 style: TextStyle(
-                  color: CareDropTheme.tealPrimary,
+                  color: CareDropTheme.royalBlue,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                 ),

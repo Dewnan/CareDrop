@@ -11,7 +11,7 @@ class TaskCompleteConfirmScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CareDropTheme.tealPrimary,
+      backgroundColor: CareDropTheme.royalBlue,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),

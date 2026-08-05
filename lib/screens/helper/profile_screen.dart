@@ -22,7 +22,7 @@ class ProfileScreen extends StatelessWidget {
             // Top Teal Profile Card Banner
             Container(
               width: double.infinity,
-              color: CareDropTheme.tealPrimary,
+              color: CareDropTheme.royalBlue,
               padding: const EdgeInsets.fromLTRB(20, 56, 20, 24),
               child: Row(
                 children: [

@@ -70,7 +70,7 @@ class HelperMapScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: CareDropTheme.tealPrimary,
+                            color: CareDropTheme.royalBlue,
                           ),
                         ),
                         Text(
@@ -99,7 +99,7 @@ class HelperMapScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: CareDropTheme.tealPrimary.withValues(alpha: 0.3)),
+                      border: Border.all(color: CareDropTheme.royalBlue.withValues(alpha: 0.3)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.06),
@@ -113,7 +113,7 @@ class HelperMapScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: CareDropTheme.tealPrimary,
+                            color: CareDropTheme.royalBlue,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -177,7 +177,7 @@ class HelperMapScreen extends StatelessWidget {
                           height: 48,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: CareDropTheme.tealPrimary,
+                              backgroundColor: CareDropTheme.royalBlue,
                             ),
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -234,7 +234,7 @@ class _RouteMapPainter extends CustomPainter {
       );
 
     final routePaint = Paint()
-      ..color = CareDropTheme.tealPrimary
+      ..color = CareDropTheme.royalBlue
       ..strokeWidth = 5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -255,7 +255,7 @@ class _RouteMapPainter extends CustomPainter {
     textPainter.paint(canvas, Offset(size.width * 0.4 - 8, size.height * 0.2 - 10));
 
     // Helper Position Marker in middle
-    final helperPinPaint = Paint()..color = CareDropTheme.tealPrimary;
+    final helperPinPaint = Paint()..color = CareDropTheme.royalBlue;
     canvas.drawCircle(Offset(size.width * 0.49, size.height * 0.48), 20, helperPinPaint);
 
     final TextPainter arrowPainter = TextPainter(

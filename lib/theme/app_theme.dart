@@ -34,9 +34,9 @@ class CareDropTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: backgroundColor,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: tealPrimary,
-        primary: tealPrimary,
-        secondary: royalBlue,
+        seedColor: royalBlue,
+        primary: royalBlue,
+        secondary: tealPrimary,
         surface: Colors.white,
         onSurface: textPrimary,
       ),
@@ -55,7 +55,7 @@ class CareDropTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: tealPrimary,
+          backgroundColor: royalBlue,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -70,8 +70,8 @@ class CareDropTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: tealPrimary,
-          side: const BorderSide(color: tealPrimary, width: 1.5),
+          foregroundColor: royalBlue,
+          side: const BorderSide(color: royalBlue, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -96,7 +96,7 @@ class CareDropTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: tealPrimary, width: 1.5),
+          borderSide: const BorderSide(color: royalBlue, width: 1.5),
         ),
         labelStyle: const TextStyle(
           color: textSecondary,

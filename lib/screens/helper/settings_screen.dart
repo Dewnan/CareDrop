@@ -146,7 +146,7 @@ class _SwitchTile extends StatelessWidget {
       trailing: Switch(
         value: value,
         activeThumbColor: Colors.white,
-        activeTrackColor: CareDropTheme.tealPrimary,
+        activeTrackColor: CareDropTheme.royalBlue,
         onChanged: onChanged,
       ),
     );

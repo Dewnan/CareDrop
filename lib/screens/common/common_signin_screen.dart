@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
-import '../../screens/helper/helper_register_screen.dart';
-import '../../screens/helper/helper_dashboard_screen.dart';
+import '../helper/helper_dashboard_screen.dart';
+import '../patient/patient_dashboard_screen.dart';
+import 'common_register_screen.dart';
 
-class HelperSignInScreen extends StatefulWidget {
-  const HelperSignInScreen({super.key});
+class CommonSignInScreen extends StatefulWidget {
+  const CommonSignInScreen({super.key});
 
   @override
-  State<HelperSignInScreen> createState() => _HelperSignInScreenState();
+  State<CommonSignInScreen> createState() => _CommonSignInScreenState();
 }
 
-class _HelperSignInScreenState extends State<HelperSignInScreen> {
+class _CommonSignInScreenState extends State<CommonSignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -18,12 +21,10 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto fill mock data for testing
     _emailController.text = 'dewnanc@proton.me';
     _passwordController.text = 'password123';
   }
 
-  // clean fields on destroy
   @override
   void dispose() {
     _emailController.dispose();
@@ -33,13 +34,16 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<CareDropAppState>();
+    final isPatient = appState.currentRole == AppRole.patient;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: CareDropTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -49,9 +53,9 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Helper Sign in',
-                style: TextStyle(
+              Text(
+                isPatient ? 'Patient Sign in' : 'Helper Sign in',
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: CareDropTheme.textPrimary,
@@ -60,9 +64,9 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 6),
 
-              const Text(
-                'Start earning with CareDrop',
-                style: TextStyle(
+              Text(
+                isPatient ? 'Welcome back to CareDrop' : 'Start earning with CareDrop',
+                style: const TextStyle(
                   fontSize: 14,
                   color: CareDropTheme.textSecondary,
                 ),
@@ -70,9 +74,8 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 36),
 
-              // Email input field
               const Text(
-                'EMAIL',
+                'EMAIL / PHONE',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -83,12 +86,11 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
-                decoration: const InputDecoration(hintText: 'Email'),
+                decoration: const InputDecoration(hintText: 'dewnanc@proton.me'),
               ),
 
               const SizedBox(height: 20),
 
-              // Passwrod input field
               const Text(
                 'PASSWORD',
                 style: TextStyle(
@@ -103,7 +105,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  hintText: 'Enter password',
+                  hintText: '••••••••',
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -123,32 +125,12 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 12),
 
-              // Tempery Messege, remove later
-              Align(
-                alignment: Alignment.center,
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Use any Email and Password for testing',
-                    style: TextStyle(
-                      color: Color.fromARGB(255, 144, 10, 7),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Forgot password
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Forgot Password Triggerd!'),
-                        duration: Duration(seconds: 2),
-                      ),
+                      const SnackBar(content: Text('Forgot Password flow triggered!')),
                     );
                   },
                   child: const Text(
@@ -164,7 +146,6 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 24),
 
-              // Sign In Button
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -172,25 +153,30 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
                   ),
-                  // send to dashboard after field validation
                   onPressed: () {
                     if (_emailController.text.trim().isEmpty ||
                         _passwordController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please fill in both Email and Password.'),
+                          content: Text('Please fill in Email/Phone and Password.'),
                           backgroundColor: Colors.red,
                         ),
                       );
                       return;
                     }
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HelperMainMainScreen(),
-                      ),
-                      (route) => false,
-                    );
+                    if (isPatient) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
+                        (route) => false,
+                      );
+                    } else {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HelperMainMainScreen()),
+                        (route) => false,
+                      );
+                    }
                   },
                   child: const Text('Sign In'),
                 ),
@@ -198,53 +184,38 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 28),
 
-              // TODO: Implement Google SSO authentication
-              // Divider "or"
               Row(
-                children: [
-                  const Expanded(
-                    child: Divider(color: CareDropTheme.cardBorderColor),
-                  ),
+                children: const [
+                  Expanded(child: Divider(color: CareDropTheme.cardBorderColor)),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       'or',
-                      style: TextStyle(
-                        color: CareDropTheme.textMuted,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: CareDropTheme.textMuted, fontSize: 13),
                     ),
                   ),
-                  const Expanded(
-                    child: Divider(color: CareDropTheme.cardBorderColor),
-                  ),
+                  Expanded(child: Divider(color: CareDropTheme.cardBorderColor)),
                 ],
               ),
 
               const SizedBox(height: 28),
 
-              // Become a Helper button
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(
-                      color: CareDropTheme.cardBorderColor,
-                    ),
+                    side: const BorderSide(color: CareDropTheme.cardBorderColor),
                     foregroundColor: CareDropTheme.textPrimary,
                   ),
-                  // load the helper registration interface
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const HelperRegisterScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const CommonRegisterScreen()),
                     );
                   },
                   child: const Text(
-                    'Become a Helper',
+                    'Create Account',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                 ),

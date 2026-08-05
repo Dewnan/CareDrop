@@ -41,7 +41,7 @@ class HelperMainMainScreen extends StatelessWidget {
           backgroundColor: Colors.white,
           elevation: 0,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: CareDropTheme.tealPrimary,
+          selectedItemColor: CareDropTheme.royalBlue,
           unselectedItemColor: CareDropTheme.textMuted,
           selectedLabelStyle: const TextStyle(
             fontSize: 11,
@@ -99,7 +99,7 @@ class HelperDashboardView extends StatelessWidget {
             // Top Teal Header Box
             Container(
               width: double.infinity,
-              color: CareDropTheme.tealPrimary,
+              color: CareDropTheme.royalBlue,
               padding: const EdgeInsets.fromLTRB(20, 52, 20, 36),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +238,7 @@ class HelperDashboardView extends StatelessWidget {
                         child: _StatBox(
                           value: 'Rs.${user.todayEarnings.toInt()}',
                           label: 'Today',
-                          valueColor: CareDropTheme.tealPrimary,
+                          valueColor: CareDropTheme.royalBlue,
                         ),
                       ),
                     ),
@@ -248,7 +248,7 @@ class HelperDashboardView extends StatelessWidget {
                       child: _StatBox(
                         value: '${user.totalTasksCompleted}',
                         label: 'Tasks',
-                        valueColor: CareDropTheme.tealPrimary,
+                        valueColor: CareDropTheme.royalBlue,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -278,7 +278,7 @@ class HelperDashboardView extends StatelessWidget {
                         color: const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: CareDropTheme.tealPrimary,
+                          color: CareDropTheme.royalBlue,
                           width: 1.5,
                         ),
                       ),
@@ -300,7 +300,7 @@ class HelperDashboardView extends StatelessWidget {
                                 child: const Text(
                                   'Active Task',
                                   style: TextStyle(
-                                    color: CareDropTheme.tealPrimary,
+                                    color: CareDropTheme.royalBlue,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -338,7 +338,7 @@ class HelperDashboardView extends StatelessWidget {
                               Expanded(
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: CareDropTheme.tealPrimary,
+                                    backgroundColor: CareDropTheme.royalBlue,
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 10,
                                     ),
@@ -410,7 +410,7 @@ class HelperDashboardView extends StatelessWidget {
                           'See All',
                           style: TextStyle(
                             fontSize: 12,
-                            color: CareDropTheme.tealPrimary,
+                            color: CareDropTheme.royalBlue,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -536,7 +536,7 @@ class _DashboardTaskTile extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.medical_services_outlined,
-                color: CareDropTheme.tealPrimary,
+                color: CareDropTheme.royalBlue,
                 size: 20,
               ),
             ),
@@ -573,7 +573,7 @@ class _DashboardTaskTile extends StatelessWidget {
                   '${task.currency} ${task.price.toInt()}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: CareDropTheme.tealPrimary,
+                    color: CareDropTheme.royalBlue,
                     fontSize: 14,
                   ),
                 ),

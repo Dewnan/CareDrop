@@ -17,7 +17,7 @@ class TaskAcceptScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CareDropTheme.tealPrimary,
+      backgroundColor: CareDropTheme.royalBlue,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -103,7 +103,7 @@ class TaskAcceptScreen extends StatelessWidget {
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: CareDropTheme.tealPrimary,
+                          foregroundColor: CareDropTheme.royalBlue,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

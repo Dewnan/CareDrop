@@ -1,32 +1,30 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import '../../screens/helper/helper_register_screen.dart';
-import '../../screens/helper/helper_dashboard_screen.dart';
+import 'patient_dashboard_screen.dart';
 
-class HelperSignInScreen extends StatefulWidget {
-  const HelperSignInScreen({super.key});
+class PatientSignInScreen extends StatefulWidget {
+  const PatientSignInScreen({super.key});
 
   @override
-  State<HelperSignInScreen> createState() => _HelperSignInScreenState();
+  State<PatientSignInScreen> createState() => _PatientSignInScreenState();
 }
 
-class _HelperSignInScreenState extends State<HelperSignInScreen> {
-  final TextEditingController _emailController = TextEditingController();
+class _PatientSignInScreenState extends State<PatientSignInScreen> {
+  final TextEditingController _phoneEmailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void initState() {
     super.initState();
-    // Auto fill mock data for testing
-    _emailController.text = 'dewnanc@proton.me';
+    // Pre-fill mock data for quick testing/demo
+    _phoneEmailController.text = '+60 12-345 6789';
     _passwordController.text = 'password123';
   }
 
-  // clean fields on destroy
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneEmailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -39,7 +37,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: CareDropTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -50,7 +48,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Helper Sign in',
+                'Sign in',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -61,7 +59,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
               const SizedBox(height: 6),
 
               const Text(
-                'Start earning with CareDrop',
+                'Welcome back to CareDrop',
                 style: TextStyle(
                   fontSize: 14,
                   color: CareDropTheme.textSecondary,
@@ -70,9 +68,9 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 36),
 
-              // Email input field
+              // Phone / Email Field Label
               const Text(
-                'EMAIL',
+                'PHONE / EMAIL',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -82,13 +80,16 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
               ),
               const SizedBox(height: 8),
               TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(hintText: 'Email'),
+                controller: _phoneEmailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  hintText: '+60 12-345 6789',
+                ),
               ),
 
               const SizedBox(height: 20),
 
-              // Passwrod input field
+              // Password Field Label
               const Text(
                 'PASSWORD',
                 style: TextStyle(
@@ -103,7 +104,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
-                  hintText: 'Enter password',
+                  hintText: '••••••••',
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -121,32 +122,16 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                 ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
-              // Tempery Messege, remove later
-              Align(
-                alignment: Alignment.center,
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Use any Email and Password for testing',
-                    style: TextStyle(
-                      color: Color.fromARGB(255, 144, 10, 7),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Forgot password
+              // Forgot Password link
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Forgot Password Triggerd!'),
+                        content: Text('Forgot Password flow triggered!'),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -154,7 +139,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                   child: const Text(
                     'Forgot Password?',
                     style: TextStyle(
-                      color: CareDropTheme.royalBlue,
+                      color: CareDropTheme.tealPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -162,23 +147,22 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Sign In Button
+              // Sign In Primary Button
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: CareDropTheme.royalBlue,
+                    backgroundColor: CareDropTheme.tealPrimary,
                   ),
-                  // send to dashboard after field validation
                   onPressed: () {
-                    if (_emailController.text.trim().isEmpty ||
+                    if (_phoneEmailController.text.trim().isEmpty ||
                         _passwordController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please fill in both Email and Password.'),
+                          content: Text('Please fill in Phone/Email and Password.'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -187,7 +171,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const HelperMainMainScreen(),
+                        builder: (_) => const PatientDashboardScreen(),
                       ),
                       (route) => false,
                     );
@@ -198,8 +182,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 28),
 
-              // TODO: Implement Google SSO authentication
-              // Divider "or"
+              // "or" Divider
               Row(
                 children: [
                   const Expanded(
@@ -223,7 +206,7 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
 
               const SizedBox(height: 28),
 
-              // Become a Helper button
+              // Create Account Button
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -234,18 +217,19 @@ class _HelperSignInScreenState extends State<HelperSignInScreen> {
                     ),
                     foregroundColor: CareDropTheme.textPrimary,
                   ),
-                  // load the helper registration interface
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HelperRegisterScreen(),
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Navigate to Create Account'),
                       ),
                     );
                   },
                   child: const Text(
-                    'Become a Helper',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    'Create Account',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),

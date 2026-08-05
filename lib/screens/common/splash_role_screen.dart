@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
-import '../helper/helper_signin_screen.dart';
+import 'common_signin_screen.dart';
 
 class SplashRoleScreen extends StatelessWidget {
   const SplashRoleScreen({super.key});
@@ -66,10 +66,10 @@ class SplashRoleScreen extends StatelessWidget {
                 borderColor: CareDropTheme.royalBlue,
                 onTap: () {
                   context.read<CareDropAppState>().setRole(AppRole.patient);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Patient Role selected!'),
-                      duration: Duration(seconds: 2),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CommonSignInScreen(),
                     ),
                   );
                 },
@@ -82,15 +82,15 @@ class SplashRoleScreen extends StatelessWidget {
                 title: 'Helper',
                 description: 'Earn by completing care tasks in your area',
                 icon: Icons.medical_services_outlined,
-                iconBg: const Color(0xFFE6F4F1),
-                iconColor: CareDropTheme.tealPrimary,
-                borderColor: CareDropTheme.tealPrimary,
+                iconBg: const Color(0xFFEFF6FF),
+                iconColor: CareDropTheme.royalBlue,
+                borderColor: CareDropTheme.royalBlue,
                 onTap: () {
                   context.read<CareDropAppState>().setRole(AppRole.helper);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const HelperSignInScreen(),
+                      builder: (_) => const CommonSignInScreen(),
                     ),
                   );
                 },

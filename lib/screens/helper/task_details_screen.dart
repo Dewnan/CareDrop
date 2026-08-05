@@ -72,7 +72,7 @@ class TaskDetailsScreen extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: CareDropTheme.tealPrimary,
+                            color: CareDropTheme.royalBlue,
                           ),
                         ),
                       ],
@@ -153,7 +153,7 @@ class TaskDetailsScreen extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: CareDropTheme.tealPrimary,
+                    backgroundColor: CareDropTheme.royalBlue,
                   ),
                   onPressed: () {
                     Navigator.push(

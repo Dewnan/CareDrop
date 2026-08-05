@@ -146,7 +146,7 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
               const SizedBox(height: 16),
               ListTile(
                 title: const Text('Show All Tasks'),
-                trailing: _selectedCategory == TaskCategory.all ? const Icon(Icons.check, color: CareDropTheme.tealPrimary) : null,
+                trailing: _selectedCategory == TaskCategory.all ? const Icon(Icons.check, color: CareDropTheme.royalBlue) : null,
                 onTap: () {
                   setState(() => _selectedCategory = TaskCategory.all);
                   Navigator.pop(context);
@@ -154,7 +154,7 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
               ),
               ListTile(
                 title: const Text('Urgent Only'),
-                trailing: _selectedCategory == TaskCategory.urgent ? const Icon(Icons.check, color: CareDropTheme.tealPrimary) : null,
+                trailing: _selectedCategory == TaskCategory.urgent ? const Icon(Icons.check, color: CareDropTheme.royalBlue) : null,
                 onTap: () {
                   setState(() => _selectedCategory = TaskCategory.urgent);
                   Navigator.pop(context);
@@ -162,7 +162,7 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
               ),
               ListTile(
                 title: const Text('Medicine Pickups'),
-                trailing: _selectedCategory == TaskCategory.medicine ? const Icon(Icons.check, color: CareDropTheme.tealPrimary) : null,
+                trailing: _selectedCategory == TaskCategory.medicine ? const Icon(Icons.check, color: CareDropTheme.royalBlue) : null,
                 onTap: () {
                   setState(() => _selectedCategory = TaskCategory.medicine);
                   Navigator.pop(context);
@@ -194,10 +194,10 @@ class _FilterChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? CareDropTheme.tealPrimary : Colors.white,
+          color: isSelected ? CareDropTheme.royalBlue : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? CareDropTheme.tealPrimary : CareDropTheme.cardBorderColor,
+            color: isSelected ? CareDropTheme.royalBlue : CareDropTheme.cardBorderColor,
           ),
         ),
         child: Text(
@@ -244,7 +244,7 @@ class _TaskBrowseTile extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.widgets_outlined,
-                color: CareDropTheme.tealPrimary,
+                color: CareDropTheme.royalBlue,
                 size: 22,
               ),
             ),
@@ -306,7 +306,7 @@ class _TaskBrowseTile extends StatelessWidget {
               '${task.currency} ${task.price.toInt()}',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: CareDropTheme.tealPrimary,
+                color: CareDropTheme.royalBlue,
                 fontSize: 16,
               ),
             ),

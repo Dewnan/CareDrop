@@ -184,7 +184,7 @@ class _HelperRegisterScreenState extends State<HelperRegisterScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: CareDropTheme.tealPrimary,
+                    backgroundColor: CareDropTheme.royalBlue,
                   ),
                   onPressed: () {
                     if (_fullNameController.text.trim().isEmpty ||
