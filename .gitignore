@@ -55,3 +55,4 @@ GoogleService-Info.plist
 **/macos/Runner/GoogleService-Info.plist
 firebase_debug_manifest/
 .firebase/
+lib/firebase_options.dart
