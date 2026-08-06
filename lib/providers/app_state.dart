@@ -1,26 +1,28 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../models/user_model.dart';
 import '../models/helper_model.dart';
 import '../models/task_model.dart';
 import '../models/earnings_model.dart';
 import '../models/review_model.dart';
+import '../services/user_session_service.dart';
 
 enum AppRole { landing, roleSelection, helper, patient }
 
 class CareDropAppState extends ChangeNotifier {
   AppRole _currentRole = AppRole.landing;
   int _currentTab = 0;
-  // All the mock data will be replaced when the backed is connected.
-  // Helper User
+  UserModel? _currentUserModel;
+
   HelperModel _helperUser = HelperModel(
     id: 'helper_001',
-    fullName: 'Dewnan Chamithka',
-    icNumber: '200300000000',
-    phoneNumber: '+94 70 000 0000',
-    email: 'dewnanc@proton.me',
+    fullName: 'Helper User',
+    icNumber: '',
+    phoneNumber: '',
+    email: '',
     rating: 4.9,
-    totalTasksCompleted: 247,
-    todayEarnings: 500.0,
+    totalTasksCompleted: 0,
+    todayEarnings: 0.0,
     verificationStatus: 'Verified',
     isOnline: true,
   );
@@ -36,6 +38,7 @@ class CareDropAppState extends ChangeNotifier {
   TaskModel? _activeTask;
   int _activeTimerSeconds = 0;
   Timer? _timer;
+
 
   // Available Tasks
   final List<TaskModel> _availableTasks = [
@@ -139,6 +142,7 @@ class CareDropAppState extends ChangeNotifier {
   // Getters
   AppRole get currentRole => _currentRole;
   int get currentTab => _currentTab;
+  UserModel? get currentUserModel => _currentUserModel;
   HelperModel get helperUser => _helperUser;
   List<TaskModel> get availableTasks => _availableTasks;
   TaskModel? get activeTask => _activeTask ?? _availableTasks.first;
@@ -154,6 +158,36 @@ class CareDropAppState extends ChangeNotifier {
 
   CareDropAppState() {
     _startTimer();
+  }
+
+  void setUserModel(UserModel user) {
+    _currentUserModel = user;
+    final isHelperRole = user.role.toLowerCase() == 'helper';
+    _currentRole = isHelperRole ? AppRole.helper : AppRole.patient;
+
+    _helperUser = HelperModel(
+      id: user.id,
+      fullName: user.fullName,
+      icNumber: user.icNumber,
+      phoneNumber: user.phone,
+      email: user.email,
+      rating: _helperUser.rating,
+      totalTasksCompleted: _helperUser.totalTasksCompleted,
+      todayEarnings: _helperUser.todayEarnings,
+      verificationStatus: 'Verified',
+      isOnline: _helperUser.isOnline,
+    );
+
+    UserSessionService.saveCachedUser(user);
+    notifyListeners();
+  }
+
+  void clearSession() {
+    _currentUserModel = null;
+    _currentRole = AppRole.landing;
+    _currentTab = 0;
+    UserSessionService.clearCache();
+    notifyListeners();
   }
 
   void _startTimer() {
@@ -200,6 +234,7 @@ class CareDropAppState extends ChangeNotifier {
     );
     notifyListeners();
   }
+
 
   void acceptTask(TaskModel task) {
     _activeTask = task.copyWith(progressStep: TaskProgressStep.taskAccepted);

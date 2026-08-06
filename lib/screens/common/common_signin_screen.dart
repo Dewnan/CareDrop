@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
+import '../../services/user_session_service.dart';
 import '../../theme/app_theme.dart';
 import '../helper/helper_dashboard_screen.dart';
 import '../patient/patient_dashboard_screen.dart';
@@ -23,9 +24,8 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
   @override
   void initState() {
     super.initState();
-    // Default to Patient demo user
     _emailController.text = MockUsers.patientUser.email;
-    _passwordController.text = MockUsers.patientUser.password;
+    _passwordController.text = 'password123';
   }
 
   @override
@@ -38,7 +38,7 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
   void _fillMockUser(UserModel user) {
     setState(() {
       _emailController.text = user.email;
-      _passwordController.text = user.password;
+      _passwordController.text = 'password123';
     });
   }
 
@@ -225,10 +225,29 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                     }
 
                     try {
-                      await FirebaseAuth.instance.signInWithEmailAndPassword(
+                      final creds = await FirebaseAuth.instance.signInWithEmailAndPassword(
                         email: email,
                         password: password,
                       );
+
+                      if (creds.user != null) {
+                        final fetchedProfile = await UserSessionService.fetchUserProfile(creds.user!.uid);
+                        if (fetchedProfile != null) {
+                          appState.setUserModel(fetchedProfile);
+                        } else {
+                          // Fallback user model if Firestore doc missing
+                          final fallbackRole = (email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient';
+                          final newProfile = UserModel(
+                            id: creds.user!.uid,
+                            email: email,
+                            fullName: creds.user!.displayName ?? (fallbackRole == 'helper' ? 'Helper User' : 'Patient User'),
+                            role: fallbackRole,
+                            gender: 'Not Specified',
+                            phone: creds.user!.phoneNumber ?? '',
+                          );
+                          appState.setUserModel(newProfile);
+                        }
+                      }
                     } on FirebaseAuthException catch (e) {
                       debugPrint('Error: ${e.message}');
                       messenger.showSnackBar(
@@ -251,15 +270,15 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
 
                     if (!mounted) return;
 
-                    // Route based on mock user email or helper keywords
-                    if (email == MockUsers.helperUser.email || email.contains('helper')) {
-                      appState.setRole(AppRole.helper);
+                    final userRole = appState.currentUserModel?.role.toLowerCase() ??
+                        ((email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient');
+
+                    if (userRole == 'helper') {
                       navigator.pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const HelperMainMainScreen()),
                         (route) => false,
                       );
                     } else {
-                      appState.setRole(AppRole.patient);
                       navigator.pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
                         (route) => false,

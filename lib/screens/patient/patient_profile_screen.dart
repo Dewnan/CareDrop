@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
-import '../../models/user_model.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
-import '../common/common_signin_screen.dart';
+import '../common/landing_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
   const PatientProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const user = MockUsers.patientUser;
+    final appState = context.watch<CareDropAppState>();
+    final user = appState.currentUserModel;
+    final fullName = user?.fullName ?? 'Patient User';
+    final initials = fullName.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join();
+    final role = user?.role ?? 'patient';
+    final phone = user?.phone ?? '';
 
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
@@ -29,10 +36,10 @@ class PatientProfileScreen extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
-                        'SA',
-                        style: TextStyle(
+                        initials.isEmpty ? 'P' : initials,
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -46,7 +53,7 @@ class PatientProfileScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user.fullName,
+                          fullName,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -55,7 +62,7 @@ class PatientProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${user.role} · ${user.phone}',
+                          '$role ${phone.isNotEmpty ? '· $phone' : ''}',
                           style: const TextStyle(color: Colors.white70, fontSize: 13),
                         ),
                         const SizedBox(height: 8),
@@ -66,7 +73,7 @@ class PatientProfileScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
-                            '15 Tasks',
+                            'Active Patient',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -141,14 +148,18 @@ class PatientProfileScreen extends StatelessWidget {
                       'Sign Out',
                       isDestructive: true,
                       isLast: true,
-                      onTap: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CommonSignInScreen(),
-                          ),
-                          (route) => false,
-                        );
+                      onTap: () async {
+                        await FirebaseAuth.instance.signOut();
+                        if (context.mounted) {
+                          context.read<CareDropAppState>().clearSession();
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LandingScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        }
                       },
                     ),
                   ]),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../common/landing_screen.dart';
@@ -157,15 +158,18 @@ class ProfileScreen extends StatelessWidget {
                 _ProfileItem(
                   title: 'Sign Out',
                   isDestructive: true,
-                  onTap: () {
-                    context.read<CareDropAppState>().setRole(AppRole.landing);
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LandingScreen(),
-                      ),
-                      (route) => false,
-                    );
+                  onTap: () async {
+                    await FirebaseAuth.instance.signOut();
+                    if (context.mounted) {
+                      context.read<CareDropAppState>().clearSession();
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const LandingScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    }
                   },
                 ),
               ],

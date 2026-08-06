@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import 'patient_task_type_screen.dart';
@@ -83,7 +82,7 @@ class _PatientHomeTab extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          MockUsers.patientUser.fullName,
+                          appState.currentUserModel?.fullName ?? 'Patient User',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,

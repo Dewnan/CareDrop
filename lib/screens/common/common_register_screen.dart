@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../helper/helper_dashboard_screen.dart';
@@ -35,12 +36,6 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
     } else {
       _selectedRole = 'Patient / Guardian';
     }
-
-    _fullNameController.text = 'Dewnan Chamithka';
-    _icController.text = '200300000000';
-    _phoneController.text = '+94 70 000 0000';
-    _emailController.text = 'dewnanc@proton.me';
-    _passwordController.text = 'password123';
   }
 
   @override
@@ -365,19 +360,25 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
 
                       final user = userCredential.user;
                       if (user != null) {
-                        await FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(user.uid)
-                            .set({
+                        final roleStr = _selectedRole == 'Helper' ? 'helper' : 'patient';
+                        final userMap = {
                           'uid': user.uid,
                           'fullName': _fullNameController.text.trim(),
                           'icNumber': _icController.text.trim(),
                           'phone': _phoneController.text.trim(),
                           'email': email,
-                          'role': _selectedRole == 'Helper' ? 'helper' : 'patient',
+                          'role': roleStr,
                           'gender': _selectedGender,
                           'createdAt': FieldValue.serverTimestamp(),
-                        });
+                        };
+
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .set(userMap);
+
+                        final newUserModel = UserModel.fromMap(userMap, docId: user.uid);
+                        appState.setUserModel(newUserModel);
                       }
                     } on FirebaseAuthException catch (e) {
                       debugPrint('Error: ${e.message}');
@@ -402,7 +403,6 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                     if (!mounted) return;
 
                     if (_selectedRole == 'Helper') {
-                      appState.setRole(AppRole.helper);
                       navigator.pushAndRemoveUntil(
                         MaterialPageRoute(
                           builder: (_) => const HelperMainMainScreen(),
@@ -410,7 +410,6 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                         (route) => false,
                       );
                     } else {
-                      appState.setRole(AppRole.patient);
                       navigator.pushAndRemoveUntil(
                         MaterialPageRoute(
                           builder: (_) => const PatientDashboardScreen(),
