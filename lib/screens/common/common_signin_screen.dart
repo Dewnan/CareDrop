@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
@@ -206,12 +207,15 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
                   ),
-                  onPressed: () {
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final appState = context.read<CareDropAppState>();
+                    final navigator = Navigator.of(context);
                     final email = _emailController.text.trim();
                     final password = _passwordController.text.trim();
 
                     if (email.isEmpty || password.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('Please fill in Email/Phone and Password.'),
                           backgroundColor: Colors.red,
@@ -220,18 +224,43 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                       return;
                     }
 
+                    try {
+                      await FirebaseAuth.instance.signInWithEmailAndPassword(
+                        email: email,
+                        password: password,
+                      );
+                    } on FirebaseAuthException catch (e) {
+                      debugPrint('Error: ${e.message}');
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(e.message ?? 'Authentication failed'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    } catch (e) {
+                      debugPrint('Error: $e');
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('An unexpected error occurred: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!mounted) return;
+
                     // Route based on mock user email or helper keywords
                     if (email == MockUsers.helperUser.email || email.contains('helper')) {
-                      context.read<CareDropAppState>().setRole(AppRole.helper);
-                      Navigator.pushAndRemoveUntil(
-                        context,
+                      appState.setRole(AppRole.helper);
+                      navigator.pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const HelperMainMainScreen()),
                         (route) => false,
                       );
                     } else {
-                      context.read<CareDropAppState>().setRole(AppRole.patient);
-                      Navigator.pushAndRemoveUntil(
-                        context,
+                      appState.setRole(AppRole.patient);
+                      navigator.pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
                         (route) => false,
                       );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../helper/helper_dashboard_screen.dart';
@@ -59,7 +61,11 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: CareDropTheme.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: CareDropTheme.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -117,10 +123,14 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                         child: Container(
                           height: 46,
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+                            color: isSelected
+                                ? const Color(0xFFEFF6FF)
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: isSelected ? CareDropTheme.royalBlue : CareDropTheme.cardBorderColor,
+                              color: isSelected
+                                  ? CareDropTheme.royalBlue
+                                  : CareDropTheme.cardBorderColor,
                               width: isSelected ? 1.5 : 1,
                             ),
                           ),
@@ -128,8 +138,12 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                             child: Text(
                               role,
                               style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? CareDropTheme.royalBlue : CareDropTheme.textSecondary,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? CareDropTheme.royalBlue
+                                    : CareDropTheme.textSecondary,
                                 fontSize: 13,
                               ),
                             ),
@@ -170,10 +184,14 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                         child: Container(
                           height: 44,
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+                            color: isSelected
+                                ? const Color(0xFFEFF6FF)
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: isSelected ? CareDropTheme.royalBlue : CareDropTheme.cardBorderColor,
+                              color: isSelected
+                                  ? CareDropTheme.royalBlue
+                                  : CareDropTheme.cardBorderColor,
                               width: isSelected ? 1.5 : 1,
                             ),
                           ),
@@ -181,8 +199,12 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                             child: Text(
                               gender,
                               style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? CareDropTheme.royalBlue : CareDropTheme.textSecondary,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? CareDropTheme.royalBlue
+                                    : CareDropTheme.textSecondary,
                                 fontSize: 13,
                               ),
                             ),
@@ -265,7 +287,9 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(hintText: 'email@example.com'),
+                decoration: const InputDecoration(
+                  hintText: 'email@example.com',
+                ),
               ),
 
               const SizedBox(height: 16),
@@ -313,10 +337,17 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
                   ),
-                  onPressed: () {
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final appState = context.read<CareDropAppState>();
+                    final navigator = Navigator.of(context);
+                    final email = _emailController.text.trim();
+                    final password = _passwordController.text.trim();
+
                     if (_fullNameController.text.trim().isEmpty ||
-                        _emailController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                        email.isEmpty ||
+                        password.isEmpty) {
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('Please complete required fields.'),
                           backgroundColor: Colors.red,
@@ -325,18 +356,65 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                       return;
                     }
 
+                    try {
+                      final userCredential = await FirebaseAuth.instance
+                          .createUserWithEmailAndPassword(
+                            email: email,
+                            password: password,
+                          );
+
+                      final user = userCredential.user;
+                      if (user != null) {
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .set({
+                          'uid': user.uid,
+                          'fullName': _fullNameController.text.trim(),
+                          'icNumber': _icController.text.trim(),
+                          'phone': _phoneController.text.trim(),
+                          'email': email,
+                          'role': _selectedRole == 'Helper' ? 'helper' : 'patient',
+                          'gender': _selectedGender,
+                          'createdAt': FieldValue.serverTimestamp(),
+                        });
+                      }
+                    } on FirebaseAuthException catch (e) {
+                      debugPrint('Error: ${e.message}');
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(e.message ?? 'Registration failed'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    } catch (e) {
+                      debugPrint('Error: $e');
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('An unexpected error occurred: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!mounted) return;
+
                     if (_selectedRole == 'Helper') {
-                      context.read<CareDropAppState>().setRole(AppRole.helper);
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const HelperMainMainScreen()),
+                      appState.setRole(AppRole.helper);
+                      navigator.pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const HelperMainMainScreen(),
+                        ),
                         (route) => false,
                       );
                     } else {
-                      context.read<CareDropAppState>().setRole(AppRole.patient);
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
+                      appState.setRole(AppRole.patient);
+                      navigator.pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const PatientDashboardScreen(),
+                        ),
                         (route) => false,
                       );
                     }
