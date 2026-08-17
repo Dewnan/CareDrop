@@ -5,8 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
-import '../helper/helper_dashboard_screen.dart';
-import '../patient/patient_dashboard_screen.dart';
+import 'email_verification_screen.dart';
 
 class CommonRegisterScreen extends StatefulWidget {
   const CommonRegisterScreen({super.key});
@@ -303,6 +302,7 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
+                onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: '••••••••',
                   suffixIcon: IconButton(
@@ -321,6 +321,11 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 10),
+
+              // Password Requirements List
+              _buildPasswordRequirementsList(_passwordController.text),
 
               const SizedBox(height: 28),
 
@@ -351,7 +356,77 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                       return;
                     }
 
+                    // Password validation requirements
+                    if (password.length < 6 || password.length > 16) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Password must be between 6 and 16 characters long.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Password must contain at least one uppercase letter (A-Z).'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!RegExp(r'[a-z]').hasMatch(password)) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Password must contain at least one lowercase letter (a-z).'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!RegExp(r'[0-9]').hasMatch(password)) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Password must contain at least one numeric digit (0-9).'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Password must contain at least one special character (e.g. !@#\$%^&*).'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
                     try {
+                      final icNumber = _icController.text.trim();
+                      if (icNumber.isNotEmpty) {
+                        final nicQuery = await FirebaseFirestore.instance
+                            .collection('users')
+                            .where('icNumber', isEqualTo: icNumber)
+                            .limit(1)
+                            .get();
+
+                        if (nicQuery.docs.isNotEmpty) {
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('An account with this IC/NIC number already exists.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
                       final userCredential = await FirebaseAuth.instance
                           .createUserWithEmailAndPassword(
                             email: email,
@@ -360,6 +435,9 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
 
                       final user = userCredential.user;
                       if (user != null) {
+                        // Send verification email
+                        await user.sendEmailVerification();
+
                         final roleStr = _selectedRole == 'Helper' ? 'helper' : 'patient';
                         final userMap = {
                           'uid': user.uid,
@@ -379,16 +457,31 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
 
                         final newUserModel = UserModel.fromMap(userMap, docId: user.uid);
                         appState.setUserModel(newUserModel);
+
+                        if (!mounted) return;
+
+                        // Navigate to Email Verification screen
+                        navigator.pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => EmailVerificationScreen(
+                              userRole: roleStr,
+                              email: email,
+                            ),
+                          ),
+                        );
+                        return;
                       }
                     } on FirebaseAuthException catch (e) {
-                      debugPrint('Error: ${e.message}');
+                      debugPrint('Error: ${e.code} - ${e.message}');
+                      final errorMsg = e.code == 'email-already-in-use'
+                          ? 'This email address is already registered.'
+                          : (e.message ?? 'Registration failed');
                       messenger.showSnackBar(
                         SnackBar(
-                          content: Text(e.message ?? 'Registration failed'),
+                          content: Text(errorMsg),
                           backgroundColor: Colors.red,
                         ),
                       );
-                      return;
                     } catch (e) {
                       debugPrint('Error: $e');
                       messenger.showSnackBar(
@@ -396,25 +489,6 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                           content: Text('An unexpected error occurred: $e'),
                           backgroundColor: Colors.red,
                         ),
-                      );
-                      return;
-                    }
-
-                    if (!mounted) return;
-
-                    if (_selectedRole == 'Helper') {
-                      navigator.pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (_) => const HelperMainMainScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    } else {
-                      navigator.pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (_) => const PatientDashboardScreen(),
-                        ),
-                        (route) => false,
                       );
                     }
                   },
@@ -427,6 +501,49 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordRequirementsList(String pwd) {
+    final hasLength = pwd.length >= 6 && pwd.length <= 16;
+    final hasUpper = RegExp(r'[A-Z]').hasMatch(pwd);
+    final hasLower = RegExp(r'[a-z]').hasMatch(pwd);
+    final hasDigit = RegExp(r'[0-9]').hasMatch(pwd);
+    final hasSpecial = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(pwd);
+
+    Widget item(bool met, String label) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          children: [
+            Icon(
+              met ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+              size: 14,
+              color: met ? Colors.green : CareDropTheme.textMuted,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: met ? Colors.green : CareDropTheme.textMuted,
+                fontWeight: met ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        item(hasLength, '6 to 16 characters long'),
+        item(hasUpper, 'At least one uppercase letter (A-Z)'),
+        item(hasLower, 'At least one lowercase letter (a-z)'),
+        item(hasDigit, 'At least one numeric digit (0-9)'),
+        item(hasSpecial, 'At least one special character (!@#\$%^&*)'),
+      ],
     );
   }
 }

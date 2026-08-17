@@ -50,6 +50,42 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  // Send Email Verification
+  Future<void> sendEmailVerification() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException [Send Verification]: ${e.code} - ${e.message}');
+      rethrow;
+    }
+  }
+
+  // Check if current user email is verified
+  Future<bool> isEmailVerified() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await user.reload();
+      return _auth.currentUser?.emailVerified ?? false;
+    }
+    return false;
+  }
+
+  // Send Password Reset Email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException [Password Reset]: ${e.code} - ${e.message}');
+      rethrow;
+    } catch (e) {
+      debugPrint('Error [Password Reset]: $e');
+      rethrow;
+    }
+  }
+
   // Sign Out
   Future<void> signOut() async {
     await _auth.signOut();

@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../helper/helper_dashboard_screen.dart';
 import '../patient/patient_dashboard_screen.dart';
 import 'common_register_screen.dart';
+import 'email_verification_screen.dart';
 
 class CommonSignInScreen extends StatefulWidget {
   const CommonSignInScreen({super.key});
@@ -40,6 +41,86 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
       _emailController.text = user.email;
       _passwordController.text = 'password123';
     });
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    final resetEmailController = TextEditingController(text: _emailController.text.trim());
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Reset Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter your registered email address below. We will send you a password reset link.',
+                style: TextStyle(fontSize: 13, color: CareDropTheme.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: resetEmailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email Address',
+                  hintText: 'email@example.com',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: CareDropTheme.royalBlue,
+              ),
+              onPressed: () async {
+                final email = resetEmailController.text.trim();
+                if (email.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter your email address.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Password reset email sent to $email'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } on FirebaseAuthException catch (e) {
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.message ?? 'Failed to send reset email'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Send Reset Link'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -182,11 +263,7 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Forgot Password flow triggered!')),
-                    );
-                  },
+                  onPressed: () => _showForgotPasswordDialog(context),
                   child: const Text(
                     'Forgot Password?',
                     style: TextStyle(
@@ -231,17 +308,31 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                       );
 
                       if (creds.user != null) {
+                        final userRole = (email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient';
+
+                        // Check if email is verified
+                        if (!creds.user!.emailVerified) {
+                          if (!mounted) return;
+                          navigator.push(
+                            MaterialPageRoute(
+                              builder: (_) => EmailVerificationScreen(
+                                userRole: userRole,
+                                email: email,
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
                         final fetchedProfile = await UserSessionService.fetchUserProfile(creds.user!.uid);
                         if (fetchedProfile != null) {
                           appState.setUserModel(fetchedProfile);
                         } else {
-                          // Fallback user model if Firestore doc missing
-                          final fallbackRole = (email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient';
                           final newProfile = UserModel(
                             id: creds.user!.uid,
                             email: email,
-                            fullName: creds.user!.displayName ?? (fallbackRole == 'helper' ? 'Helper User' : 'Patient User'),
-                            role: fallbackRole,
+                            fullName: creds.user!.displayName ?? (userRole == 'helper' ? 'Helper User' : 'Patient User'),
+                            role: userRole,
                             gender: 'Not Specified',
                             phone: creds.user!.phoneNumber ?? '',
                           );
