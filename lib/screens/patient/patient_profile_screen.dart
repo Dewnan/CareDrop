@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../common/edit_profile_screen.dart';
 import '../common/landing_screen.dart';
 
 class PatientProfileScreen extends StatelessWidget {
@@ -105,7 +106,18 @@ class PatientProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _buildMenuCard([
-                    _buildMenuItem(Icons.person_outline, 'Personal Information'),
+                    _buildMenuItem(
+                      Icons.person_outline,
+                      'Personal Information',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfileScreen(),
+                          ),
+                        );
+                      },
+                    ),
                     _buildMenuItem(Icons.security_outlined, 'Security Settings'),
                     _buildMenuItem(Icons.payment_outlined, 'Payment Methods', isLast: true),
                   ]),

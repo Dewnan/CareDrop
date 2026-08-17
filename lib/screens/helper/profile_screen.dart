@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../common/edit_profile_screen.dart';
 import '../common/landing_screen.dart';
 import 'settings_screen.dart';
 import 'ratings_screen.dart';
@@ -116,7 +117,14 @@ class ProfileScreen extends StatelessWidget {
               items: [
                 _ProfileItem(
                   title: 'Personal Information',
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const EditProfileScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
+import '../../services/user_profile_service.dart';
 import '../../theme/app_theme.dart';
 import 'email_verification_screen.dart';
 
@@ -408,25 +409,6 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                     }
 
                     try {
-                      final icNumber = _icController.text.trim();
-                      if (icNumber.isNotEmpty) {
-                        final nicQuery = await FirebaseFirestore.instance
-                            .collection('users')
-                            .where('icNumber', isEqualTo: icNumber)
-                            .limit(1)
-                            .get();
-
-                        if (nicQuery.docs.isNotEmpty) {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Text('An account with this IC/NIC number already exists.'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-                      }
-
                       final userCredential = await FirebaseAuth.instance
                           .createUserWithEmailAndPassword(
                             email: email,
@@ -435,27 +417,40 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
 
                       final user = userCredential.user;
                       if (user != null) {
+                        final icNumber = _icController.text.trim();
+                        if (icNumber.isNotEmpty) {
+                          final nicQuery = await FirebaseFirestore.instance
+                              .collection('users')
+                              .where('icNumber', isEqualTo: icNumber)
+                              .limit(1)
+                              .get();
+
+                          if (nicQuery.docs.isNotEmpty) {
+                            await user.delete(); // Rollback user creation
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('An account with this NIC number already exists.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+                        }
                         // Send verification email
                         await user.sendEmailVerification();
 
                         final roleStr = _selectedRole == 'Helper' ? 'helper' : 'patient';
-                        final userMap = {
-                          'uid': user.uid,
-                          'fullName': _fullNameController.text.trim(),
-                          'icNumber': _icController.text.trim(),
-                          'phone': _phoneController.text.trim(),
-                          'email': email,
-                          'role': roleStr,
-                          'gender': _selectedGender,
-                          'createdAt': FieldValue.serverTimestamp(),
-                        };
+                        final newUserModel = UserModel(
+                          id: user.uid,
+                          email: email,
+                          fullName: _fullNameController.text.trim(),
+                          role: roleStr,
+                          gender: _selectedGender,
+                          phone: _phoneController.text.trim(),
+                          icNumber: _icController.text.trim(),
+                        );
 
-                        await FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(user.uid)
-                            .set(userMap);
-
-                        final newUserModel = UserModel.fromMap(userMap, docId: user.uid);
+                        await UserProfileService.createUserProfile(newUserModel);
                         appState.setUserModel(newUserModel);
 
                         if (!mounted) return;
