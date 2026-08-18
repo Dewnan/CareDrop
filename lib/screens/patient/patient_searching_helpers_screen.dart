@@ -5,7 +5,7 @@ import '../../models/user_model.dart';
 import '../../theme/app_theme.dart';
 import 'patient_matched_helper_screen.dart';
 
-class PatientSearchingHelpersScreen extends StatelessWidget {
+class PatientSearchingHelpersScreen extends StatefulWidget {
   final String taskId;
 
   const PatientSearchingHelpersScreen({
@@ -14,16 +14,24 @@ class PatientSearchingHelpersScreen extends StatelessWidget {
   });
 
   @override
+  State<PatientSearchingHelpersScreen> createState() => _PatientSearchingHelpersScreenState();
+}
+
+class _PatientSearchingHelpersScreenState extends State<PatientSearchingHelpersScreen> {
+  bool _isNavigating = false;
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('tasks').doc(taskId).snapshots(),
+      stream: FirebaseFirestore.instance.collection('tasks').doc(widget.taskId).snapshots(),
       builder: (context, snapshot) {
         final taskData = snapshot.data?.data();
         final progressStep = taskData?['progressStep'] as String? ?? 'pending';
         final assignedHelperId = taskData?['assignedHelperId'] as String?;
 
-        // If a helper accepts, load helper profile and redirect to Matched Helper screen automatically
-        if (progressStep != 'pending' && assignedHelperId != null && assignedHelperId.isNotEmpty) {
+        // If a helper accepts, load helper profile and redirect once
+        if (!_isNavigating && progressStep != 'pending' && assignedHelperId != null && assignedHelperId.isNotEmpty) {
+          _isNavigating = true;
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             final helperDoc = await FirebaseFirestore.instance.collection('users').doc(assignedHelperId).get();
             final helperModel = helperDoc.exists && helperDoc.data() != null
@@ -35,7 +43,7 @@ class PatientSearchingHelpersScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (_) => PatientMatchedHelperScreen(
-                    taskId: taskId,
+                    taskId: widget.taskId,
                     helperModel: helperModel,
                   ),
                 ),
@@ -119,7 +127,7 @@ class PatientSearchingHelpersScreen extends StatelessWidget {
                         foregroundColor: const Color(0xFFEF4444),
                       ),
                       onPressed: () async {
-                        await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
+                        await FirebaseFirestore.instance.collection('tasks').doc(widget.taskId).update({
                           'progressStep': TaskProgressStep.cancelled.name,
                         });
                         if (context.mounted) Navigator.pop(context);
