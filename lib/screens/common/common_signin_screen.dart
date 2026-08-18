@@ -26,7 +26,7 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
   void initState() {
     super.initState();
     _emailController.text = MockUsers.patientUser.email;
-    _passwordController.text = 'password123';
+    _passwordController.text = 'Dewnan@2003';
   }
 
   @override
@@ -39,7 +39,7 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
   void _fillMockUser(UserModel user) {
     setState(() {
       _emailController.text = user.email;
-      _passwordController.text = 'password123';
+      _passwordController.text = 'Dewnan@2003';
     });
   }
 

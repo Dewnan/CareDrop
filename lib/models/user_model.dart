@@ -71,21 +71,20 @@ class UserModel {
 
 class MockUsers {
   static const UserModel patientUser = UserModel(
-    id: 'user_patient_01',
-    email: 'patient@caredrop.lk',
-    fullName: 'Patient User',
+    id: 'p0001',
+    email: 'dewnanc@proton.me',
+    fullName: 'Patient Demo',
     role: 'patient',
     gender: 'Male',
     phone: '+94 70 000 0001',
   );
 
   static const UserModel helperUser = UserModel(
-    id: 'user_helper_01',
-    email: 'helper@caredrop.lk',
-    fullName: 'Helper User',
+    id: 'h0001',
+    email: 'dewnancw@proton.me',
+    fullName: 'Helper Demo',
     role: 'helper',
     gender: 'Male',
     phone: '+94 70 000 0002',
   );
 }
-
