@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../models/task_model.dart';
-import '../../providers/app_state.dart';
+import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'task_details_screen.dart';
 
@@ -17,14 +16,6 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<CareDropAppState>();
-
-    final filteredTasks = appState.availableTasks.where((task) {
-      if (_selectedCategory == TaskCategory.all) return true;
-      if (_selectedCategory == TaskCategory.urgent) return task.isUrgent;
-      return task.category == _selectedCategory;
-    }).toList();
-
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
       appBar: AppBar(
@@ -98,20 +89,45 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
           ),
 
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: filteredTasks.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final task = filteredTasks[index];
-                return _TaskBrowseTile(
-                  task: task,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TaskDetailsScreen(task: task),
-                      ),
+            child: StreamBuilder<List<TaskModel>>(
+              stream: TaskService.streamPendingTasks(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final tasks = snapshot.data ?? [];
+                final filteredTasks = tasks.where((task) {
+                  if (_selectedCategory == TaskCategory.all) return true;
+                  if (_selectedCategory == TaskCategory.urgent) return task.isUrgent;
+                  return task.category == _selectedCategory;
+                }).toList();
+
+                if (filteredTasks.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No pending tasks available right now.',
+                      style: TextStyle(color: CareDropTheme.textMuted),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredTasks.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final task = filteredTasks[index];
+                    return _TaskBrowseTile(
+                      task: task,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TaskDetailsScreen(task: task),
+                          ),
+                        );
+                      },
                     );
                   },
                 );

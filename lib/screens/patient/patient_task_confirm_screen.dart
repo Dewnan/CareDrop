@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/task_creation_form_data.dart';
+import '../../models/task_model.dart';
+import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'patient_searching_helpers_screen.dart';
 
@@ -210,19 +213,63 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Task posted! Searching for nearby available helpers...'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PatientSearchingHelpersScreen(),
-                      ),
-                    );
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+                    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+                    try {
+                      final category = TaskCategory.values.firstWhere(
+                        (e) => e.name.toLowerCase() == data.taskType.toLowerCase().replaceAll(' ', ''),
+                        orElse: () => TaskCategory.medicine,
+                      );
+
+                      final newTask = TaskModel(
+                        id: '',
+                        patientId: currentUserId,
+                        title: data.taskType,
+                        hospital: data.pickupHospital,
+                        locationDetail: '${data.pickupBuilding}, ${data.pickupWard}, ${data.pickupRoomBed}',
+                        distanceStr: '1.2 km',
+                        distanceKm: 1.2,
+                        currency: 'LKR',
+                        price: totalFee,
+                        isUrgent: data.priority == 'Urgent',
+                        category: category,
+                        deadline: data.isAsap ? 'ASAP' : 'Scheduled',
+                        patientInfo: '${data.preferredLanguage} · ${data.preferredGender}',
+                        description: data.description,
+                        startTimeStr: DateTime.now().toString(),
+                        progressStep: TaskProgressStep.pending,
+                        proofItems: [
+                          ProofItem(title: 'Item Photo', isRequired: true),
+                          ProofItem(title: 'Receipt / Handover Signature', isRequired: true),
+                        ],
+                      );
+
+                      final taskId = await TaskService.createTask(newTask);
+
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Task posted to Firestore! Searching for nearby available helpers...'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+
+                      if (!context.mounted) return;
+                      navigator.push(
+                        MaterialPageRoute(
+                          builder: (_) => PatientSearchingHelpersScreen(taskId: taskId),
+                        ),
+                      );
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to post task: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   child: const Text(
                     'Post Task',

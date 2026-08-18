@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/task_model.dart';
+import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'task_accept_screen.dart';
 
@@ -155,16 +157,33 @@ class TaskDetailsScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
                   ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TaskAcceptScreen(task: task),
-                      ),
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+                    final helperId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+                    final success = await TaskService.acceptTask(
+                      taskId: task.id,
+                      helperId: helperId,
                     );
+
+                    if (success) {
+                      navigator.push(
+                        MaterialPageRoute(
+                          builder: (_) => TaskAcceptScreen(task: task),
+                        ),
+                      );
+                    } else {
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('This task has already been accepted by another helper!'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   child: Text(
-                    'Accept Task — RM ${(task.price / 10).toStringAsFixed(2)}',
+                    'Accept Task — LKR ${task.price.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

@@ -153,82 +153,85 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.mark_email_unread_outlined,
-                  size: 48,
-                  color: CareDropTheme.royalBlue,
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              const Text(
-                'Verify Your Email',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: CareDropTheme.textPrimary,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              Text(
-                'We have sent a verification link to:\n${widget.email}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: CareDropTheme.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              const CircularProgressIndicator(color: CareDropTheme.royalBlue),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                'Waiting for email verification to complete...',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: CareDropTheme.textMuted,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Resend Button with Cooldown
-              TextButton(
-                onPressed: _canResendEmail ? _resendVerificationEmail : null,
-                child: Text(
-                  _canResendEmail
-                      ? 'Resend Verification Email'
-                      : 'Resend in ${_resendCountdown}s',
-                  style: TextStyle(
-                    color: _canResendEmail
-                        ? CareDropTheme.royalBlue
-                        : CareDropTheme.textMuted,
-                    fontWeight: FontWeight.bold,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEFF6FF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.mark_email_unread_outlined,
+                    size: 48,
+                    color: CareDropTheme.royalBlue,
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 28),
+
+                const Text(
+                  'Verify Your Email',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: CareDropTheme.textPrimary,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  'We have sent a verification link to:\n${widget.email}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: CareDropTheme.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                const CircularProgressIndicator(color: CareDropTheme.royalBlue),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  'Waiting for email verification to complete...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: CareDropTheme.textMuted,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Resend Button with Cooldown
+                TextButton(
+                  onPressed: _canResendEmail ? _resendVerificationEmail : null,
+                  child: Text(
+                    _canResendEmail
+                        ? 'Resend Verification Email'
+                        : 'Resend in ${_resendCountdown}s',
+                    style: TextStyle(
+                      color: _canResendEmail
+                          ? CareDropTheme.royalBlue
+                          : CareDropTheme.textMuted,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

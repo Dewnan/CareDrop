@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
 import '../../theme/app_theme.dart';
 import 'patient_status_tracking_screen.dart';
 
 class PatientMatchedHelperScreen extends StatelessWidget {
-  const PatientMatchedHelperScreen({super.key});
+  final String taskId;
+  final UserModel? helperModel;
+
+  const PatientMatchedHelperScreen({
+    super.key,
+    required this.taskId,
+    this.helperModel,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final helperName = helperModel?.fullName ?? 'Helper Assigned';
+    final initials = helperName.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join();
+
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
       appBar: AppBar(
@@ -44,18 +55,18 @@ class PatientMatchedHelperScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        // Avatar AR Box
+                        // Avatar Box
                         Container(
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: CareDropTheme.tealPrimary,
+                            color: CareDropTheme.royalBlue,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'AR',
-                              style: TextStyle(
+                              initials.isEmpty ? 'H' : initials,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -68,9 +79,9 @@ class PatientMatchedHelperScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Ahmad Razif Hassan',
-                                style: TextStyle(
+                              Text(
+                                helperName,
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: CareDropTheme.textPrimary,
@@ -82,15 +93,15 @@ class PatientMatchedHelperScreen extends StatelessWidget {
                                   const Icon(Icons.star, color: Colors.amber, size: 16),
                                   const SizedBox(width: 4),
                                   const Text(
-                                    '4.9 ',
+                                    '5.0 ',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
                                     ),
                                   ),
                                   Text(
-                                    '(247 tasks)',
-                                    style: TextStyle(
+                                    '· ${helperModel?.phone.isNotEmpty == true ? helperModel!.phone : 'Verified Helper'}',
+                                    style: const TextStyle(
                                       color: CareDropTheme.textMuted,
                                       fontSize: 13,
                                     ),
@@ -105,7 +116,7 @@ class PatientMatchedHelperScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
-                                  'Verified',
+                                  'Verified Helper',
                                   style: TextStyle(
                                     color: Color(0xFF16A34A),
                                     fontSize: 11,
@@ -121,25 +132,13 @@ class PatientMatchedHelperScreen extends StatelessWidget {
 
                     const SizedBox(height: 20),
 
-                    // Stats Grid
-                    Row(
-                      children: [
-                        _buildStatBox('247', 'Tasks'),
-                        const SizedBox(width: 10),
-                        _buildStatBox('98%', 'Response'),
-                        const SizedBox(width: 10),
-                        _buildStatBox('18 min', 'Avg'),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
+                    // Info Row
                     Row(
                       children: const [
                         Icon(Icons.location_on_outlined, size: 16, color: CareDropTheme.textMuted),
                         SizedBox(width: 4),
                         Text(
-                          '1.2 km away · Est. 8 min',
+                          'Nearby · Ready to assist',
                           style: TextStyle(color: CareDropTheme.textSecondary, fontSize: 13),
                         ),
                       ],
@@ -150,88 +149,30 @@ class PatientMatchedHelperScreen extends StatelessWidget {
 
               const Spacer(),
 
-              // Action Buttons Row
-              Row(
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: SizedBox(
-                      height: 52,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: CareDropTheme.cardBorderColor),
-                          foregroundColor: CareDropTheme.textPrimary,
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          'Find Another',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ),
-                    ),
+              // Action Button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: CareDropTheme.royalBlue,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 6,
-                    child: SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: CareDropTheme.tealPrimary,
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PatientStatusTrackingScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Accept Ahmad ✓',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                        ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PatientStatusTrackingScreen(),
                       ),
-                    ),
+                    );
+                  },
+                  child: Text(
+                    'Track Task Status',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatBox(String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: CareDropTheme.backgroundColor,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: CareDropTheme.tealPrimary,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: CareDropTheme.textMuted,
-              ),
-            ),
-          ],
         ),
       ),
     );
