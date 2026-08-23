@@ -1,29 +1,32 @@
 import 'package:flutter/material.dart';
 
+// Data transfer model holding user input during task creation
 class TaskCreationFormData {
   String taskType;
   String description;
   String? additionalInstructions;
   
-  // Pickup Location
+  // Pickup Location Details & Coordinates
   String pickupHospital;
   String pickupBuilding;
   String pickupWard;
   String pickupRoomBed;
+  double? pickupLat;
+  double? pickupLng;
 
-  // Drop-off Location
+  // Drop-off Location Details & Coordinates
   String dropoffWard;
   String dropoffRoomBed;
+  double? dropoffLat;
+  double? dropoffLng;
 
-  // Date & Time
+  // Schedule & Priority
   bool isAsap;
   DateTime scheduledDate;
   TimeOfDay scheduledTime;
-
-  // Priority
   String priority; // 'Normal', 'Urgent'
 
-  // Budget & Payment
+  // Budget & Payment (Manual budget kept per user instruction)
   String? budget; // LKR
   String paymentMethod; // 'Cash', 'Online Payment'
 
@@ -35,11 +38,9 @@ class TaskCreationFormData {
   // Attachments
   String? attachmentFileName;
 
-  // Helper Preferences
+  // Helper Preferences & Contact Method
   String preferredLanguage; // 'Sinhala', 'Tamil', 'English'
   String preferredGender; // 'No preference', 'Male', 'Female'
-
-  // Contact Preference
   String contactPreference; // 'In-app Chat', 'Phone Call', 'Either'
 
   TaskCreationFormData({
@@ -50,8 +51,12 @@ class TaskCreationFormData {
     this.pickupBuilding = '',
     this.pickupWard = '',
     this.pickupRoomBed = '',
+    this.pickupLat,
+    this.pickupLng,
     this.dropoffWard = '',
     this.dropoffRoomBed = '',
+    this.dropoffLat,
+    this.dropoffLng,
     this.isAsap = true,
     DateTime? scheduledDate,
     TimeOfDay? scheduledTime,

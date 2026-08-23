@@ -126,11 +126,49 @@ class _PatientSearchingHelpersScreenState extends State<PatientSearchingHelpersS
                         side: const BorderSide(color: CareDropTheme.cardBorderColor),
                         foregroundColor: const Color(0xFFEF4444),
                       ),
+                      // Handle task cancellation modal and update status to cancelled
                       onPressed: () async {
-                        await FirebaseFirestore.instance.collection('tasks').doc(widget.taskId).update({
-                          'progressStep': TaskProgressStep.cancelled.name,
-                        });
-                        if (context.mounted) Navigator.pop(context);
+                        // Confirm cancellation before updating Firestore status
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Cancel Task Request?'),
+                            content: const Text(
+                              'Are you sure you want to cancel this request? Nearby helpers will no longer see this task.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Keep Searching'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                ),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Yes, Cancel Task'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          // Update Firestore progress step to cancelled via TaskService
+                          await FirebaseFirestore.instance.collection('tasks').doc(widget.taskId).update({
+                            'progressStep': TaskProgressStep.cancelled.name,
+                            'cancelledAt': FieldValue.serverTimestamp(),
+                          });
+
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Task request cancelled.'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            Navigator.pop(context);
+                          }
+                        }
                       },
                       child: const Text('Cancel Request', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),

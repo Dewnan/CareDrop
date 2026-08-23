@@ -186,7 +186,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 8),
               Row(
-                children: ['Male', 'Female', 'Other'].map((gender) {
+                children: ['Male', 'Female'].map((gender) {
                   final isSelected = _selectedGender == gender;
                   return Expanded(
                     child: Padding(

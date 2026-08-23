@@ -182,7 +182,7 @@ class _PatientHomeTab extends StatelessWidget {
                               Text(
                                 'Create New Task',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Colors.black,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -190,12 +190,12 @@ class _PatientHomeTab extends StatelessWidget {
                               SizedBox(height: 2),
                               Text(
                                 'Get help within minutes',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                                style: TextStyle(color: Colors.black45, fontSize: 12),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.black45, size: 16),
                       ],
                     ),
                   ),

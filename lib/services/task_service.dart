@@ -99,4 +99,17 @@ class TaskService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  /// Safely cancel a task posted by a patient while searching or in-progress
+  static Future<void> cancelTask({
+    required String taskId,
+    String? reason,
+  }) async {
+    await _db.collection(_collectionPath).doc(taskId).update({
+      'progressStep': TaskProgressStep.cancelled.name,
+      'cancelReason': reason ?? 'Cancelled by user',
+      'cancelledAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 }

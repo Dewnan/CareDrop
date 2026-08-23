@@ -3,6 +3,8 @@ import '../../models/task_creation_form_data.dart';
 import '../../theme/app_theme.dart';
 import 'patient_task_confirm_screen.dart';
 
+/// Screen allowing patients to quickly create a task.
+/// Includes inline task type selector, map location pickers, and dynamic/conditional forms.
 class PatientCreateTaskFormScreen extends StatefulWidget {
   final String initialTaskType;
 
@@ -22,7 +24,7 @@ class _PatientCreateTaskFormScreenState
 
   late TaskCreationFormData _formData;
 
-  // Controllers
+  // Form Controllers
   late TextEditingController _descriptionController;
   late TextEditingController _addInstructionsController;
   late TextEditingController _pickupHospitalController;
@@ -36,12 +38,13 @@ class _PatientCreateTaskFormScreenState
   late TextEditingController _itemQuantityController;
   late TextEditingController _itemInstructionsController;
 
-  final List<String> _taskTypes = [
+  // Pre-defined Task Types without icons
+  final List<String> _taskTypeOptions = [
     'Medicine Pickup',
-    'Food Pickup',
-    'Document Delivery',
-    'Queue/Token Assistance',
     'Pharmacy Purchase',
+    'Queue/Token Assistance',
+    'Document Delivery',
+    'Food Pickup',
     'Other',
   ];
 
@@ -53,39 +56,29 @@ class _PatientCreateTaskFormScreenState
   void initState() {
     super.initState();
     _formData = TaskCreationFormData(
-      taskType: _taskTypes.contains(widget.initialTaskType)
-          ? widget.initialTaskType
-          : 'Medicine Pickup',
-      pickupHospital: 'Padukka Base Hospital',
-      pickupBuilding: 'Main Block',
-      pickupWard: 'Ward 4',
-      pickupRoomBed: 'Bed 12',
-      dropoffWard: 'Discharge Counter',
-      dropoffRoomBed: 'Desk B',
-      description: 'Please collect medications as per prescription.',
+      taskType: widget.initialTaskType,
+      pickupHospital: '',
+      pickupBuilding: '',
+      pickupWard: '',
+      pickupRoomBed: '',
+      dropoffWard: '',
+      dropoffRoomBed: '',
+      description: '',
+      budget: '250',
     );
 
-    _descriptionController =
-        TextEditingController(text: _formData.description);
-    _addInstructionsController =
-        TextEditingController(text: _formData.additionalInstructions);
-    _pickupHospitalController =
-        TextEditingController(text: _formData.pickupHospital);
-    _pickupBuildingController =
-        TextEditingController(text: _formData.pickupBuilding);
-    _pickupWardController = TextEditingController(text: _formData.pickupWard);
-    _pickupRoomBedController =
-        TextEditingController(text: _formData.pickupRoomBed);
-    _dropoffWardController =
-        TextEditingController(text: _formData.dropoffWard);
-    _dropoffRoomBedController =
-        TextEditingController(text: _formData.dropoffRoomBed);
-    _budgetController = TextEditingController(text: _formData.budget ?? '250');
-    _itemNameController = TextEditingController(text: _formData.itemName ?? '');
-    _itemQuantityController =
-        TextEditingController(text: _formData.itemQuantity ?? '');
-    _itemInstructionsController =
-        TextEditingController(text: _formData.itemSpecialInstructions ?? '');
+    _descriptionController = TextEditingController();
+    _addInstructionsController = TextEditingController();
+    _pickupHospitalController = TextEditingController();
+    _pickupBuildingController = TextEditingController();
+    _pickupWardController = TextEditingController();
+    _pickupRoomBedController = TextEditingController();
+    _dropoffWardController = TextEditingController();
+    _dropoffRoomBedController = TextEditingController();
+    _budgetController = TextEditingController(text: '250');
+    _itemNameController = TextEditingController();
+    _itemQuantityController = TextEditingController();
+    _itemInstructionsController = TextEditingController();
   }
 
   @override
@@ -104,6 +97,20 @@ class _PatientCreateTaskFormScreenState
     _itemInstructionsController.dispose();
     super.dispose();
   }
+
+  // Determine which form sections are required based on selected task type
+  bool get _requiresDropoff =>
+      _formData.taskType != 'Queue/Token Assistance';
+
+  bool get _requiresItemDetails =>
+      _formData.taskType == 'Medicine Pickup' ||
+      _formData.taskType == 'Pharmacy Purchase' ||
+      _formData.taskType == 'Food Pickup';
+
+  bool get _requiresAttachment =>
+      _formData.taskType == 'Medicine Pickup' ||
+      _formData.taskType == 'Pharmacy Purchase' ||
+      _formData.taskType == 'Document Delivery';
 
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
@@ -131,9 +138,101 @@ class _PatientCreateTaskFormScreenState
     }
   }
 
+  // Simulate opening map picker dialog for pickup or dropoff location
+  void _openMapPicker({required bool isPickup}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          height: 380,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isPickup ? 'Select Pickup Location on Map' : 'Select Drop-off Location on Map',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Map preview placeholder card
+              Container(
+                height: 160,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: CareDropTheme.royalBlue.withValues(alpha: 0.3)),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.location_on, color: CareDropTheme.royalBlue, size: 40),
+                      SizedBox(height: 8),
+                      Text(
+                        'Map Location Picker',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: CareDropTheme.royalBlue),
+                      ),
+                      Text(
+                        'Tap to set precise GPS pin',
+                        style: TextStyle(fontSize: 12, color: CareDropTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: CareDropTheme.royalBlue,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      if (isPickup) {
+                        _formData.pickupLat = 6.9271;
+                        _formData.pickupLng = 79.8612;
+                        if (_pickupHospitalController.text.isEmpty) {
+                          _pickupHospitalController.text = 'Pickup Point (Selected via Map)';
+                        }
+                      } else {
+                        _formData.dropoffLat = 6.9275;
+                        _formData.dropoffLng = 79.8618;
+                        if (_dropoffWardController.text.isEmpty) {
+                          _dropoffWardController.text = 'Drop off Point (Selected via Map)';
+                        }
+                      }
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Confirm Location Pin'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Validates and submits task creation form with null safety
   void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
+    if (_formKey.currentState?.validate() ?? false) {
+      _formKey.currentState?.save();
       _formData.description = _descriptionController.text.trim();
       _formData.additionalInstructions = _addInstructionsController.text.trim();
       _formData.pickupHospital = _pickupHospitalController.text.trim();
@@ -145,8 +244,7 @@ class _PatientCreateTaskFormScreenState
       _formData.budget = _budgetController.text.trim();
       _formData.itemName = _itemNameController.text.trim();
       _formData.itemQuantity = _itemQuantityController.text.trim();
-      _formData.itemSpecialInstructions =
-          _itemInstructionsController.text.trim();
+      _formData.itemSpecialInstructions = _itemInstructionsController.text.trim();
 
       Navigator.push(
         context,
@@ -157,7 +255,7 @@ class _PatientCreateTaskFormScreenState
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill all required fields.'),
+          content: Text('Please complete all required fields.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -172,8 +270,7 @@ class _PatientCreateTaskFormScreenState
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              size: 20, color: CareDropTheme.textPrimary),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: CareDropTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -189,136 +286,255 @@ class _PatientCreateTaskFormScreenState
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             children: [
-              // 1. TASK TYPE & DESCRIPTION
-              _buildSectionHeader('1. TASK TYPE & DESCRIPTION'),
-              const SizedBox(height: 12),
-              _buildCard([
-                const Text(
-                  'Task Type *',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
+              // 1. INLINE TASK TYPE SELECTOR HEADER
+              const Text(
+                'SELECT TASK TYPE',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: CareDropTheme.textSecondary,
+                  letterSpacing: 0.5,
                 ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: _formData.taskType,
-                  decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
-                  items: _taskTypes
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _formData.taskType = val;
-                      });
-                    }
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 48,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _taskTypeOptions.length,
+                  itemBuilder: (context, index) {
+                    final optionName = _taskTypeOptions[index];
+                    final isSelected = _formData.taskType == optionName;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        showCheckmark: false,
+                        label: Text(
+                          optionName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? Colors.white : CareDropTheme.textPrimary,
+                          ),
+                        ),
+                        selected: isSelected,
+                        selectedColor: CareDropTheme.royalBlue,
+                        backgroundColor: Colors.white,
+                        onSelected: (val) {
+                          if (val) {
+                            setState(() {
+                              _formData.taskType = optionName;
+                            });
+                          }
+                        },
+                      ),
+                    );
                   },
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Task Description *',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 3,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Description is required' : null,
-                  decoration: const InputDecoration(
-                    hintText: 'Explain what the helper needs to do in detail...',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Optional Additional Instructions',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                TextFormField(
-                  controller: _addInstructionsController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Any extra notes (e.g. handle with care)',
-                  ),
-                ),
-              ]),
+              ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // 2. PICKUP LOCATION
-              _buildSectionHeader('2. PICKUP LOCATION'),
-              const SizedBox(height: 12),
+              // 2. TASK DETAILS & DESCRIPTION
+              _buildSectionHeader('1. TASK DETAILS & DESCRIPTION'),
+              const SizedBox(height: 8),
               _buildCard([
                 _buildTextField(
-                  label: 'Hospital Name *',
-                  controller: _pickupHospitalController,
+                  label: 'Task Description *',
+                  controller: _descriptionController,
                   required: true,
+                  maxLines: 3,
+                  hintText: 'Explain what the helper needs to do...',
                 ),
                 const SizedBox(height: 12),
                 _buildTextField(
-                  label: 'Building / Department *',
+                  label: 'Additional Instructions (Optional)',
+                  controller: _addInstructionsController,
+                  maxLines: 2,
+                  hintText: 'e.g. Contact upon arrival',
+                ),
+              ]),
+
+              const SizedBox(height: 20),
+
+              // 3. PICKUP LOCATION WITH MAP BUTTON
+              _buildSectionHeader('2. PICKUP / SERVICE LOCATION'),
+              const SizedBox(height: 8),
+              _buildCard([
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        label: 'Hospital / Location Name *',
+                        controller: _pickupHospitalController,
+                        required: true,
+                        hintText: 'e.g. National Hospital / Pharmacy Name',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.map, color: CareDropTheme.royalBlue),
+                      tooltip: 'Select on Map',
+                      onPressed: () => _openMapPicker(isPickup: true),
+                    ),
+                  ],
+                ),
+                if (_formData.pickupLat != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Map location pinned (${_formData.pickupLat?.toStringAsFixed(4)}, ${_formData.pickupLng?.toStringAsFixed(4)})',
+                        style: const TextStyle(fontSize: 11, color: Colors.green),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 12),
+                _buildTextField(
+                  label: 'Building / Department',
                   controller: _pickupBuildingController,
-                  required: true,
+                  hintText: 'e.g. Main OPD / Pharmacy Counter',
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: _buildTextField(
-                        label: 'Ward *',
+                        label: 'Ward / Section',
                         controller: _pickupWardController,
-                        required: true,
+                        hintText: 'e.g. Ward 4',
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildTextField(
-                        label: 'Room / Bed Number *',
+                        label: 'Room / Bed / Counter',
                         controller: _pickupRoomBedController,
-                        required: true,
+                        hintText: 'e.g. Bed 12 / Desk A',
                       ),
                     ),
                   ],
                 ),
               ]),
 
-              const SizedBox(height: 24),
+              // 4. DROP-OFF LOCATION (CONDITIONALLY SHOWN)
+              if (_requiresDropoff) ...[
+                const SizedBox(height: 20),
+                _buildSectionHeader('3. DROP-OFF LOCATION'),
+                const SizedBox(height: 8),
+                _buildCard([
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          label: 'Drop-off Ward / Address *',
+                          controller: _dropoffWardController,
+                          required: true,
+                          hintText: 'e.g. Discharge Counter / Home Address',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.map, color: CareDropTheme.royalBlue),
+                        tooltip: 'Select on Map',
+                        onPressed: () => _openMapPicker(isPickup: false),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTextField(
+                    label: 'Room / Bed / Desk Number',
+                    controller: _dropoffRoomBedController,
+                    hintText: 'e.g. Room 204',
+                  ),
+                ]),
+              ],
 
-              // 3. DROP-OFF LOCATION
-              _buildSectionHeader('3. DROP-OFF LOCATION'),
-              const SizedBox(height: 12),
-              _buildCard([
-                _buildTextField(
-                  label: 'Ward / Department *',
-                  controller: _dropoffWardController,
-                  required: true,
-                ),
-                const SizedBox(height: 12),
-                _buildTextField(
-                  label: 'Room / Bed Number *',
-                  controller: _dropoffRoomBedController,
-                  required: true,
-                ),
-              ]),
+              // 5. ITEM DETAILS (CONDITIONALLY SHOWN)
+              if (_requiresItemDetails) ...[
+                const SizedBox(height: 20),
+                _buildSectionHeader('ITEM DETAILS'),
+                const SizedBox(height: 8),
+                _buildCard([
+                  _buildTextField(
+                    label: 'Item / Medicine Name',
+                    controller: _itemNameController,
+                    hintText: 'e.g. Paracetamol 500mg',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          label: 'Quantity',
+                          controller: _itemQuantityController,
+                          hintText: 'e.g. 2 Packets',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTextField(
+                          label: 'Special Notes',
+                          controller: _itemInstructionsController,
+                          hintText: 'e.g. Keep chilled',
+                        ),
+                      ),
+                    ],
+                  ),
+                ]),
+              ],
 
-              const SizedBox(height: 24),
+              // 6. ATTACHMENTS (CONDITIONALLY SHOWN)
+              if (_requiresAttachment) ...[
+                const SizedBox(height: 20),
+                _buildSectionHeader('ATTACHMENT (PRESCRIPTION / DOC)'),
+                const SizedBox(height: 8),
+                _buildCard([
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: CareDropTheme.cardBorderColor),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.attach_file, color: CareDropTheme.royalBlue),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _formData.attachmentFileName ?? 'Prescription_Document.pdf',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: CareDropTheme.textPrimary,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _formData.attachmentFileName = 'Prescription_Selected.jpg';
+                            });
+                          },
+                          child: const Text('Change'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ],
 
-              // 4. DATE & TIME & PRIORITY
-              _buildSectionHeader('4. DATE, TIME & PRIORITY'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
+
+              // 7. SCHEDULE & PRIORITY
+              _buildSectionHeader('SCHEDULE & PRIORITY'),
+              const SizedBox(height: 8),
               _buildCard([
                 Row(
                   children: [
@@ -358,7 +574,7 @@ class _PatientCreateTaskFormScreenState
                   ],
                 ),
                 if (!_formData.isAsap) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -385,9 +601,9 @@ class _PatientCreateTaskFormScreenState
                     ],
                   ),
                 ],
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 const Text(
-                  'Priority *',
+                  'Priority Level',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -423,28 +639,19 @@ class _PatientCreateTaskFormScreenState
                 ),
               ]),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // 5. BUDGET & PAYMENT
-              _buildSectionHeader('5. BUDGET & PAYMENT METHOD'),
-              const SizedBox(height: 12),
+              // 8. BUDGET AMOUNT & PAYMENT
+              _buildSectionHeader('OFFER BUDGET & PAYMENT'),
+              const SizedBox(height: 8),
               _buildCard([
                 _buildTextField(
-                  label: 'Budget Amount (LKR)',
+                  label: 'Offered Budget (LKR)',
                   controller: _budgetController,
                   keyboardType: TextInputType.number,
                   hintText: 'e.g. 250',
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Payment Method',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(
                   children: ['Cash', 'Online Payment'].map((method) {
                     final isSel = _formData.paymentMethod == method;
@@ -471,185 +678,9 @@ class _PatientCreateTaskFormScreenState
                 ),
               ]),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // 6. ITEM DETAILS & ATTACHMENTS
-              _buildSectionHeader('6. ITEM DETAILS & ATTACHMENTS (OPTIONAL)'),
-              const SizedBox(height: 12),
-              _buildCard([
-                _buildTextField(
-                  label: 'Item Name',
-                  controller: _itemNameController,
-                  hintText: 'e.g. Metformin 500mg',
-                ),
-                const SizedBox(height: 12),
-                _buildTextField(
-                  label: 'Quantity',
-                  controller: _itemQuantityController,
-                  hintText: 'e.g. 2 Boxes',
-                ),
-                const SizedBox(height: 12),
-                _buildTextField(
-                  label: 'Special Instructions',
-                  controller: _itemInstructionsController,
-                  hintText: 'e.g. Check expiry date',
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Attachment (Prescription / Document)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: CareDropTheme.cardBorderColor),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.attach_file, color: CareDropTheme.royalBlue),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _formData.attachmentFileName ?? 'Prescription_Image.jpg',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: CareDropTheme.textPrimary,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 18, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            _formData.attachmentFileName = null;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ]),
-
-              const SizedBox(height: 24),
-
-              // 7. HELPER PREFERENCES & CONTACT
-              _buildSectionHeader('7. HELPER PREFERENCES & CONTACT'),
-              const SizedBox(height: 12),
-              _buildCard([
-                const Text(
-                  'Preferred Language',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: _languages.map((lang) {
-                    final isSel = _formData.preferredLanguage == lang;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Center(child: Text(lang, style: const TextStyle(fontSize: 12))),
-                          selected: isSel,
-                          selectedColor: CareDropTheme.royalBlue,
-                          labelStyle: TextStyle(
-                            color: isSel ? Colors.white : CareDropTheme.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          onSelected: (val) {
-                            setState(() {
-                              _formData.preferredLanguage = lang;
-                            });
-                          },
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Gender Preference',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: _genders.map((gen) {
-                    final isSel = _formData.preferredGender == gen;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Center(child: Text(gen, style: const TextStyle(fontSize: 11))),
-                          selected: isSel,
-                          selectedColor: CareDropTheme.royalBlue,
-                          labelStyle: TextStyle(
-                            color: isSel ? Colors.white : CareDropTheme.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          onSelected: (val) {
-                            setState(() {
-                              _formData.preferredGender = gen;
-                            });
-                          },
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Contact Preference',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: _contactPreferences.map((pref) {
-                    final isSel = _formData.contactPreference == pref;
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          label: Center(child: Text(pref, style: const TextStyle(fontSize: 11))),
-                          selected: isSel,
-                          selectedColor: CareDropTheme.royalBlue,
-                          labelStyle: TextStyle(
-                            color: isSel ? Colors.white : CareDropTheme.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          onSelected: (val) {
-                            setState(() {
-                              _formData.contactPreference = pref;
-                            });
-                          },
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ]),
-
-              const SizedBox(height: 32),
-
-              // REVIEW & SUBMIT BUTTON
+              // SUBMIT BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -659,7 +690,7 @@ class _PatientCreateTaskFormScreenState
                   ),
                   onPressed: _submitForm,
                   child: const Text(
-                    'Review Task & Confirm',
+                    'Review & Post Task',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -677,7 +708,7 @@ class _PatientCreateTaskFormScreenState
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: FontWeight.bold,
         color: CareDropTheme.royalBlue,
         letterSpacing: 0.5,
@@ -704,6 +735,7 @@ class _PatientCreateTaskFormScreenState
     required String label,
     required TextEditingController controller,
     bool required = false,
+    int maxLines = 1,
     String? hintText,
     TextInputType keyboardType = TextInputType.text,
   }) {
@@ -721,14 +753,14 @@ class _PatientCreateTaskFormScreenState
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
+          maxLines: maxLines,
           keyboardType: keyboardType,
           validator: required
               ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
               : null,
           decoration: InputDecoration(
             hintText: hintText,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
       ],
