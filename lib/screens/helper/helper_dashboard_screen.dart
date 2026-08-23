@@ -41,7 +41,7 @@ class HelperMainMainScreen extends StatelessWidget {
           backgroundColor: Colors.white,
           elevation: 0,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: CareDropTheme.royalBlue,
+          selectedItemColor: CareDropTheme.black,
           unselectedItemColor: CareDropTheme.textMuted,
           selectedLabelStyle: const TextStyle(
             fontSize: 11,

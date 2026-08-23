@@ -8,6 +8,8 @@ class CareDropTheme {
   
   static const Color royalBlue = Color(0xFF2563EB);
   static const Color royalBlueDark = Color(0xFF1D4ED8);
+
+  static const Color black = Color.fromARGB(255, 0, 0, 0);
   
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color cardBorderColor = Color(0xFFE2E8F0);

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
-import 'patient_task_type_screen.dart';
+import 'patient_create_task_form_screen.dart';
 import 'patient_task_history_screen.dart';
 import 'patient_profile_screen.dart';
 
@@ -32,7 +32,7 @@ class _PatientDashboardScreenState extends State<PatientDashboardScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: CareDropTheme.tealPrimary,
+        selectedItemColor: CareDropTheme.black,
         unselectedItemColor: CareDropTheme.textMuted,
         onTap: (index) {
           setState(() {
@@ -150,16 +150,17 @@ class _PatientHomeTab extends StatelessWidget {
                 // Create New Task Callout Banner
                 InkWell(
                   onTap: () {
+                    // Navigate directly to task creation form
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const PatientTaskTypeScreen()),
+                      MaterialPageRoute(builder: (_) => const PatientCreateTaskFormScreen()),
                     );
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
+                      color: const Color.fromARGB(255, 240, 241, 242),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -261,9 +262,20 @@ class _PatientHomeTab extends StatelessWidget {
     return Expanded(
       child: InkWell(
         onTap: () {
+          // Map quick action title to initial task type name
+          final String initialType = title == 'Pickup'
+              ? 'Medicine Pickup'
+              : title == 'Delivery'
+                  ? 'Document Delivery'
+                  : title == 'Escort'
+                      ? 'Queue/Token Assistance'
+                      : 'Pharmacy Purchase';
+
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const PatientTaskTypeScreen()),
+            MaterialPageRoute(
+              builder: (_) => PatientCreateTaskFormScreen(initialTaskType: initialType),
+            ),
           );
         },
         borderRadius: BorderRadius.circular(12),
