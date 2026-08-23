@@ -152,7 +152,43 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
 
               const SizedBox(height: 20),
 
-              // GENDER SELECTION
+              // FULL NAME
+              const Text(
+                'FULL NAME',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: CareDropTheme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _fullNameController,
+                decoration: const InputDecoration(hintText: 'Full Name'),
+              ),
+
+              const SizedBox(height: 16),
+
+              // IC / ID NUMBER
+              const Text(
+                'NIC NUMBER',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: CareDropTheme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _icController,
+                decoration: const InputDecoration(hintText: 'NIC Number'),
+              ),
+
+              const SizedBox(height: 16),
+
+              // GENDER SELECTION (Positioned between NIC Number and Phone Number; Male & Female choices)
               const Text(
                 'GENDER',
                 style: TextStyle(
@@ -164,7 +200,7 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
               ),
               const SizedBox(height: 8),
               Row(
-                children: ['Male', 'Female', 'Other'].map((gender) {
+                children: ['Male', 'Female'].map((gender) {
                   final isSelected = _selectedGender == gender;
                   return Expanded(
                     child: Padding(
@@ -209,42 +245,6 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                     ),
                   );
                 }).toList(),
-              ),
-
-              const SizedBox(height: 20),
-
-              // FULL NAME
-              const Text(
-                'FULL NAME',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: CareDropTheme.textSecondary,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _fullNameController,
-                decoration: const InputDecoration(hintText: 'Full Name'),
-              ),
-
-              const SizedBox(height: 16),
-
-              // IC / ID NUMBER
-              const Text(
-                'IC / NATIONAL ID NUMBER',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: CareDropTheme.textSecondary,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _icController,
-                decoration: const InputDecoration(hintText: 'NIC / IC Number'),
               ),
 
               const SizedBox(height: 16),

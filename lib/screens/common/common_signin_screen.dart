@@ -22,11 +22,16 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  // Rate limiting state variables to protect against brute force login attempts
+  int _failedAttempts = 0;
+  DateTime? _lockoutEndTime;
+  static const int _maxAttempts = 3;
+  static const int _lockoutDurationSeconds = 120;
+
   @override
   void initState() {
     super.initState();
-    _emailController.text = MockUsers.patientUser.email;
-    _passwordController.text = 'Dewnan@2003';
+    // Initialize text controllers empty for production login
   }
 
   @override
@@ -34,6 +39,49 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Checks if the user is currently rate limited due to too many failed attempts
+  bool _isRateLimited(ScaffoldMessengerState messenger) {
+    if (_lockoutEndTime != null) {
+      if (DateTime.now().isBefore(_lockoutEndTime!)) {
+        final remainingSec = _lockoutEndTime!.difference(DateTime.now()).inSeconds + 1;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Too many failed attempts. Please try again in $remainingSec seconds.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return true;
+      } else {
+        // Lockout period has elapsed; reset counters
+        _lockoutEndTime = null;
+        _failedAttempts = 0;
+      }
+    }
+    return false;
+  }
+
+  // Increments failed attempt count and applies rate limit lockout if threshold reached
+  void _recordFailedAttempt(ScaffoldMessengerState messenger, String errorDetails) {
+    _failedAttempts++;
+    if (_failedAttempts >= _maxAttempts) {
+      _lockoutEndTime = DateTime.now().add(const Duration(seconds: _lockoutDurationSeconds));
+      _failedAttempts = 0;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Too many failed attempts (3/3). Login locked for 2 minutes.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('$errorDetails (Attempt $_failedAttempts/$_maxAttempts)'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _fillMockUser(UserModel user) {
@@ -291,10 +339,15 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                     final email = _emailController.text.trim();
                     final password = _passwordController.text.trim();
 
+                    // Prevent sign in if user is locked out due to rate limit
+                    if (_isRateLimited(messenger)) {
+                      return;
+                    }
+
                     if (email.isEmpty || password.isEmpty) {
                       messenger.showSnackBar(
                         const SnackBar(
-                          content: Text('Please fill in Email/Phone and Password.'),
+                          content: Text('Please fill in Email and Password.'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -308,6 +361,10 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                       );
 
                       if (creds.user != null) {
+                        // Reset rate limit counters on successful authentication
+                        _failedAttempts = 0;
+                        _lockoutEndTime = null;
+
                         final userRole = (email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient';
 
                         // Check if email is verified
@@ -341,21 +398,13 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                       }
                     } on FirebaseAuthException catch (e) {
                       debugPrint('Error: ${e.message}');
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(e.message ?? 'Authentication failed'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      // Record failed attempt for rate limiting
+                      _recordFailedAttempt(messenger, e.message ?? 'Authentication failed');
                       return;
                     } catch (e) {
                       debugPrint('Error: $e');
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('An unexpected error occurred: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
+                      // Record failed attempt for rate limiting
+                      _recordFailedAttempt(messenger, 'An unexpected error occurred: $e');
                       return;
                     }
 
