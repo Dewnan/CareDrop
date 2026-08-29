@@ -11,6 +11,38 @@ enum TaskProgressStep {
   cancelled,
 }
 
+/// Evaluates whether a task progress step can legally transition to a target step.
+extension TaskProgressStepX on TaskProgressStep {
+  bool canTransitionTo(TaskProgressStep nextStep) {
+    if (this == nextStep) return true;
+    switch (this) {
+      case TaskProgressStep.pending:
+        return nextStep == TaskProgressStep.taskAccepted ||
+            nextStep == TaskProgressStep.cancelled;
+      case TaskProgressStep.taskAccepted:
+        return nextStep == TaskProgressStep.enRoute ||
+            nextStep == TaskProgressStep.cancelled;
+      case TaskProgressStep.enRoute:
+        return nextStep == TaskProgressStep.arrivedAtLocation ||
+            nextStep == TaskProgressStep.cancelled;
+      case TaskProgressStep.arrivedAtLocation:
+        return nextStep == TaskProgressStep.inProgress ||
+            nextStep == TaskProgressStep.cancelled;
+      case TaskProgressStep.inProgress:
+        return nextStep == TaskProgressStep.uploadProof ||
+            nextStep == TaskProgressStep.completed ||
+            nextStep == TaskProgressStep.cancelled;
+      case TaskProgressStep.uploadProof:
+        return nextStep == TaskProgressStep.completed ||
+            nextStep == TaskProgressStep.cancelled;
+      case TaskProgressStep.completed:
+        return false;
+      case TaskProgressStep.cancelled:
+        return nextStep == TaskProgressStep.pending;
+    }
+  }
+}
+
 class ProofItem {
   final String title;
   final bool isRequired;
@@ -76,6 +108,8 @@ class TaskModel {
   final String startTimeStr;
   final TaskProgressStep progressStep;
   final List<ProofItem> proofItems;
+  final String? attachmentUrl;
+  final String? attachmentFileName;
 
   TaskModel({
     required this.id,
@@ -98,14 +132,19 @@ class TaskModel {
     required this.startTimeStr,
     this.progressStep = TaskProgressStep.pending,
     required this.proofItems,
+    this.attachmentUrl,
+    this.attachmentFileName,
   });
 
+  /// Creates a copy of the task model with optional field overrides.
   TaskModel copyWith({
     String? id,
     String? patientId,
     String? assignedHelperId,
     TaskProgressStep? progressStep,
     List<ProofItem>? proofItems,
+    String? attachmentUrl,
+    String? attachmentFileName,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -128,9 +167,12 @@ class TaskModel {
       startTimeStr: startTimeStr,
       progressStep: progressStep ?? this.progressStep,
       proofItems: proofItems ?? this.proofItems,
+      attachmentUrl: attachmentUrl ?? this.attachmentUrl,
+      attachmentFileName: attachmentFileName ?? this.attachmentFileName,
     );
   }
 
+  /// Converts TaskModel fields into a Map for Firestore storage.
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -153,9 +195,12 @@ class TaskModel {
       'startTimeStr': startTimeStr,
       'progressStep': progressStep.name,
       'proofItems': proofItems.map((e) => e.toMap()).toList(),
+      'attachmentUrl': attachmentUrl,
+      'attachmentFileName': attachmentFileName,
     };
   }
 
+  /// Constructs a TaskModel instance from a Firestore document map.
   factory TaskModel.fromMap(Map<String, dynamic> map, {String? docId}) {
     return TaskModel(
       id: docId ?? map['id'] as String? ?? '',
@@ -187,6 +232,8 @@ class TaskModel {
               ?.map((e) => ProofItem.fromMap(e as Map<String, dynamic>))
               .toList() ??
           [],
+      attachmentUrl: map['attachmentUrl'] as String?,
+      attachmentFileName: map['attachmentFileName'] as String?,
     );
   }
 }

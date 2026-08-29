@@ -145,7 +145,8 @@ class CareDropAppState extends ChangeNotifier {
   UserModel? get currentUserModel => _currentUserModel;
   HelperModel get helperUser => _helperUser;
   List<TaskModel> get availableTasks => _availableTasks;
-  TaskModel? get activeTask => _activeTask ?? _availableTasks.first;
+  TaskModel? get activeTask => _activeTask;
+
   List<EarningsItem> get earningsHistory => _earningsHistory;
   List<ReviewItem> get reviews => _reviews;
   int get activeTimerSeconds => _activeTimerSeconds;
@@ -193,10 +194,13 @@ class CareDropAppState extends ChangeNotifier {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      _activeTimerSeconds++;
-      notifyListeners();
+      if (_activeTask != null) {
+        _activeTimerSeconds++;
+        notifyListeners();
+      }
     });
   }
+
 
   String get formattedTimer {
     final minutes = (_activeTimerSeconds ~/ 60).toString().padLeft(2, '0');

@@ -89,14 +89,32 @@ class TaskService {
     });
   }
 
-  /// Update task progress step (e.g. enRoute, arrived, completed)
-  static Future<void> updateTaskProgress({
+  /// Validates and executes state transitions for a task using an atomic transaction.
+  static Future<bool> updateTaskProgress({
     required String taskId,
     required TaskProgressStep step,
   }) async {
-    await _db.collection(_collectionPath).doc(taskId).update({
-      'progressStep': step.name,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final taskRef = _db.collection(_collectionPath).doc(taskId);
+
+    return _db.runTransaction<bool>((transaction) async {
+      final snapshot = await transaction.get(taskRef);
+      if (!snapshot.exists) return false;
+
+      final data = snapshot.data()!;
+      final currentStepStr = data['progressStep'] as String? ?? TaskProgressStep.pending.name;
+      final currentStep = TaskProgressStep.values.firstWhere(
+        (e) => e.name == currentStepStr,
+        orElse: () => TaskProgressStep.pending,
+      );
+
+      if (currentStep.canTransitionTo(step)) {
+        transaction.update(taskRef, {
+          'progressStep': step.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        return true;
+      }
+      return false;
     });
   }
 

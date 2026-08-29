@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../models/task_creation_form_data.dart';
 import '../../theme/app_theme.dart';
 import 'patient_task_confirm_screen.dart';
+
 
 /// Screen allowing patients to quickly create a task.
 /// Includes inline task type selector, map location pickers, and dynamic/conditional forms.
@@ -21,18 +25,17 @@ class PatientCreateTaskFormScreen extends StatefulWidget {
 class _PatientCreateTaskFormScreenState
     extends State<PatientCreateTaskFormScreen> {
   final _formKey = GlobalKey<FormState>();
-
   late TaskCreationFormData _formData;
 
-  // Form Controllers
-  late TextEditingController _descriptionController;
-  late TextEditingController _addInstructionsController;
+  // Form field controllers
   late TextEditingController _pickupHospitalController;
   late TextEditingController _pickupBuildingController;
   late TextEditingController _pickupWardController;
   late TextEditingController _pickupRoomBedController;
   late TextEditingController _dropoffWardController;
   late TextEditingController _dropoffRoomBedController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _addInstructionsController;
   late TextEditingController _budgetController;
   late TextEditingController _itemNameController;
   late TextEditingController _itemQuantityController;
@@ -48,49 +51,34 @@ class _PatientCreateTaskFormScreenState
     'Other',
   ];
 
-  final List<String> _languages = ['Sinhala', 'Tamil', 'English'];
-  final List<String> _genders = ['No preference', 'Male', 'Female'];
-  final List<String> _contactPreferences = ['In-app Chat', 'Phone Call', 'Either'];
-
   @override
   void initState() {
     super.initState();
-    _formData = TaskCreationFormData(
-      taskType: widget.initialTaskType,
-      pickupHospital: '',
-      pickupBuilding: '',
-      pickupWard: '',
-      pickupRoomBed: '',
-      dropoffWard: '',
-      dropoffRoomBed: '',
-      description: '',
-      budget: '250',
-    );
-
-    _descriptionController = TextEditingController();
-    _addInstructionsController = TextEditingController();
-    _pickupHospitalController = TextEditingController();
-    _pickupBuildingController = TextEditingController();
-    _pickupWardController = TextEditingController();
-    _pickupRoomBedController = TextEditingController();
-    _dropoffWardController = TextEditingController();
-    _dropoffRoomBedController = TextEditingController();
-    _budgetController = TextEditingController(text: '250');
-    _itemNameController = TextEditingController();
-    _itemQuantityController = TextEditingController();
-    _itemInstructionsController = TextEditingController();
+    _formData = TaskCreationFormData(taskType: widget.initialTaskType);
+    _pickupHospitalController = TextEditingController(text: _formData.pickupHospital);
+    _pickupBuildingController = TextEditingController(text: _formData.pickupBuilding);
+    _pickupWardController = TextEditingController(text: _formData.pickupWard);
+    _pickupRoomBedController = TextEditingController(text: _formData.pickupRoomBed);
+    _dropoffWardController = TextEditingController(text: _formData.dropoffWard);
+    _dropoffRoomBedController = TextEditingController(text: _formData.dropoffRoomBed);
+    _descriptionController = TextEditingController(text: _formData.description);
+    _addInstructionsController = TextEditingController(text: _formData.additionalInstructions);
+    _budgetController = TextEditingController(text: _formData.budget ?? '250');
+    _itemNameController = TextEditingController(text: _formData.itemName);
+    _itemQuantityController = TextEditingController(text: _formData.itemQuantity);
+    _itemInstructionsController = TextEditingController(text: _formData.itemSpecialInstructions);
   }
 
   @override
   void dispose() {
-    _descriptionController.dispose();
-    _addInstructionsController.dispose();
     _pickupHospitalController.dispose();
     _pickupBuildingController.dispose();
     _pickupWardController.dispose();
     _pickupRoomBedController.dispose();
     _dropoffWardController.dispose();
     _dropoffRoomBedController.dispose();
+    _descriptionController.dispose();
+    _addInstructionsController.dispose();
     _budgetController.dispose();
     _itemNameController.dispose();
     _itemQuantityController.dispose();
@@ -100,7 +88,10 @@ class _PatientCreateTaskFormScreenState
 
   // Determine which form sections are required based on selected task type
   bool get _requiresDropoff =>
-      _formData.taskType != 'Queue/Token Assistance';
+      _formData.taskType == 'Medicine Pickup' ||
+      _formData.taskType == 'Pharmacy Purchase' ||
+      _formData.taskType == 'Document Delivery' ||
+      _formData.taskType == 'Food Pickup';
 
   bool get _requiresItemDetails =>
       _formData.taskType == 'Medicine Pickup' ||
@@ -112,7 +103,108 @@ class _PatientCreateTaskFormScreenState
       _formData.taskType == 'Pharmacy Purchase' ||
       _formData.taskType == 'Document Delivery';
 
+  /// Captures an image from the device camera or photo library using ImagePicker.
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _formData.attachmentFileName = image.name;
+          _formData.localAttachmentPath = image.path;
+          _formData.attachmentBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to select image: $e')),
+        );
+      }
+    }
+  }
+
+  /// Opens the device document picker to select PDF or image files.
+  Future<void> _pickDocument() async {
+    try {
+      final result = await FilePickerPlatform.instance.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'],
+      );
+
+      if (result.isNotEmpty) {
+        final file = result.first;
+        final filePath = file.path;
+        dynamic fileBytes;
+        if (filePath != null && filePath.isNotEmpty) {
+          try {
+            fileBytes = await File(filePath).readAsBytes();
+          } catch (_) {}
+        }
+        setState(() {
+          _formData.attachmentFileName = file.name;
+          _formData.localAttachmentPath = filePath;
+          _formData.attachmentBytes = fileBytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to select document: $e')),
+        );
+      }
+    }
+  }
+
+  /// Displays a modal bottom sheet for choosing between camera, photo library, or document files.
+  void _showDocumentPickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined, color: CareDropTheme.royalBlue),
+              title: const Text('Choose Document (PDF / File)'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickDocument();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera, color: CareDropTheme.royalBlue),
+              title: const Text('Take a Photo (Camera)'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: CareDropTheme.royalBlue),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _selectDate() async {
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _formData.scheduledDate,
@@ -495,40 +587,59 @@ class _PatientCreateTaskFormScreenState
                 _buildSectionHeader('ATTACHMENT (PRESCRIPTION / DOC)'),
                 const SizedBox(height: 8),
                 _buildCard([
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: CareDropTheme.cardBorderColor),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.attach_file, color: CareDropTheme.royalBlue),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _formData.attachmentFileName ?? 'Prescription_Document.pdf',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: CareDropTheme.textPrimary,
+                  InkWell(
+                    onTap: _showDocumentPickerOptions,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: CareDropTheme.cardBorderColor),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.attach_file_outlined, color: CareDropTheme.royalBlue),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _formData.attachmentFileName ?? 'Attach Prescription or Document (PDF / Image)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: _formData.attachmentFileName != null
+                                    ? CareDropTheme.textPrimary
+                                    : CareDropTheme.textMuted,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _formData.attachmentFileName = 'Prescription_Selected.jpg';
-                            });
-                          },
-                          child: const Text('Change'),
-                        ),
-                      ],
+                          if (_formData.attachmentFileName != null)
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  _formData.attachmentFileName = null;
+                                  _formData.attachmentUrl = null;
+                                  _formData.localAttachmentPath = null;
+                                  _formData.attachmentBytes = null;
+                                });
+                              },
+                            )
+                          else
+                            TextButton.icon(
+                              onPressed: _showDocumentPickerOptions,
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Select'),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ]),
               ],
+
 
               const SizedBox(height: 20),
 

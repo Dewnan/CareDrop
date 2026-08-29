@@ -37,6 +37,9 @@ class TaskCreationFormData {
 
   // Attachments
   String? attachmentFileName;
+  String? attachmentUrl;
+  String? localAttachmentPath;
+  dynamic attachmentBytes; // Uint8List for web/cross-platform support
 
   // Helper Preferences & Contact Method
   String preferredLanguage; // 'Sinhala', 'Tamil', 'English'

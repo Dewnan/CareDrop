@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
+import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'patient_create_task_form_screen.dart';
 import 'patient_task_history_screen.dart';
 import 'patient_profile_screen.dart';
+
 
 class PatientDashboardScreen extends StatefulWidget {
   const PatientDashboardScreen({super.key});
@@ -57,9 +60,9 @@ class _PatientHomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final appState = context.watch<CareDropAppState>();
     final activeTask = appState.activeTask;
-    final tasks = appState.availableTasks;
 
     return SingleChildScrollView(
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -240,16 +243,65 @@ class _PatientHomeTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                ...tasks.map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _buildRecentTaskItem(
-                    t.title,
-                    '${t.hospital} · ${t.startTimeStr}',
-                    t.isUrgent ? 'Active' : 'Done',
-                    t.isUrgent ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
-                    t.isUrgent ? const Color(0xFFD97706) : const Color(0xFF16A34A),
-                  ),
-                )),
+                appState.currentUserModel?.id == null
+                    ? const Text(
+                        'No recent tasks.',
+                        style: TextStyle(color: CareDropTheme.textMuted, fontSize: 13),
+                      )
+                    : StreamBuilder<List<TaskModel>>(
+                        stream: TaskService.streamPatientTasks(appState.currentUserModel!.id),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+
+                          final patientTasks = snapshot.data ?? [];
+
+                          if (patientTasks.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Text(
+                                'No recent tasks created yet.',
+                                style: TextStyle(color: CareDropTheme.textMuted, fontSize: 13),
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: patientTasks.map((t) {
+                              final isDone = t.progressStep == TaskProgressStep.completed;
+                              final isCancelled = t.progressStep == TaskProgressStep.cancelled;
+
+                              String statusLabel = 'Active';
+                              Color bg = const Color(0xFFFEF3C7);
+                              Color textCol = const Color(0xFFD97706);
+
+                              if (isDone) {
+                                statusLabel = 'Done';
+                                bg = const Color(0xFFDCFCE7);
+                                textCol = const Color(0xFF16A34A);
+                              } else if (isCancelled) {
+                                statusLabel = 'Cancelled';
+                                bg = const Color(0xFFFEE2E2);
+                                textCol = const Color(0xFFDC2626);
+                              } else if (t.progressStep == TaskProgressStep.pending) {
+                                statusLabel = 'Pending';
+                              }
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _buildRecentTaskItem(
+                                  t.title,
+                                  '${t.hospital} · ${t.deadline}',
+                                  statusLabel,
+                                  bg,
+                                  textCol,
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
               ],
             ),
           ),
@@ -257,6 +309,7 @@ class _PatientHomeTab extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildQuickAction(BuildContext context, String title, IconData icon, Color bgColor, Color iconColor) {
     return Expanded(
@@ -350,31 +403,32 @@ class _PatientHomeTab extends StatelessWidget {
   }
 }
 
+/// Renders the patient alerts/notifications tab with an empty state when no alerts exist.
 class _PatientAlertsTab extends StatelessWidget {
   const _PatientAlertsTab();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications & Alerts'), backgroundColor: Colors.white, elevation: 0),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          ListTile(
-            leading: Icon(Icons.notifications, color: CareDropTheme.tealPrimary),
-            title: Text('Task Accepted by Ahmad Razif'),
-            subtitle: Text('Ahmad has accepted your Medication Pickup task.'),
-            trailing: Text('10m ago', style: TextStyle(fontSize: 11, color: Colors.grey)),
-          ),
-          Divider(),
-          ListTile(
-            leading: Icon(Icons.check_circle, color: Colors.green),
-            title: Text('Document Submission Completed'),
-            subtitle: Text('Payment of RS 180.00 released.'),
-            trailing: Text('1d ago', style: TextStyle(fontSize: 11, color: Colors.grey)),
-          ),
-        ],
+      appBar: AppBar(
+        title: const Text('Notifications & Alerts'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey),
+            SizedBox(height: 12),
+            Text(
+              'No notifications or alerts yet.',
+              style: TextStyle(color: CareDropTheme.textMuted, fontSize: 16),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+

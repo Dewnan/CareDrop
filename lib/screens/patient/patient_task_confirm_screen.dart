@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/task_creation_form_data.dart';
 import '../../models/task_model.dart';
 import '../../services/task_service.dart';
+import '../../services/supabase_storage_service.dart';
 import '../../theme/app_theme.dart';
 import 'patient_searching_helpers_screen.dart';
 
+/// Screen for reviewing and confirming task details before posting it to Firestore and Supabase Storage.
 class PatientTaskConfirmScreen extends StatelessWidget {
   final TaskCreationFormData? formData;
   final String taskTypeName;
@@ -98,7 +101,7 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                                     color: data.priority == 'Urgent'
                                         ? const Color(0xFFEF4444)
                                         : CareDropTheme.royalBlue,
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -106,43 +109,18 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 20, color: CareDropTheme.royalBlue),
-                          onPressed: () => Navigator.pop(context),
-                        ),
                       ],
                     ),
-
                     const SizedBox(height: 16),
-                    const Divider(color: CareDropTheme.cardBorderColor),
-                    const SizedBox(height: 12),
-
-                    _buildDetailRow('Description', data.description),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                    _buildDetailRow('Pickup', '${data.pickupHospital} (${data.pickupBuilding}, ${data.pickupWard})'),
                     const SizedBox(height: 10),
-                    if (data.additionalInstructions != null && data.additionalInstructions!.isNotEmpty) ...[
-                      _buildDetailRow('Instructions', data.additionalInstructions!),
-                      const SizedBox(height: 10),
-                    ],
-                    _buildDetailRow(
-                      'Pickup',
-                      '${data.pickupHospital}, ${data.pickupBuilding}, ${data.pickupWard}, ${data.pickupRoomBed}',
-                    ),
+                    _buildDetailRow('Drop-off', 'Ward ${data.dropoffWard}, Bed ${data.dropoffRoomBed}'),
                     const SizedBox(height: 10),
-                    _buildDetailRow(
-                      'Drop-off',
-                      '${data.dropoffWard}, ${data.dropoffRoomBed}',
-                    ),
+                    _buildDetailRow('Schedule', data.isAsap ? 'ASAP' : '${data.scheduledDate.toString().split(' ')[0]} ${data.scheduledTime.format(context)}'),
                     const SizedBox(height: 10),
-                    _buildDetailRow(
-                      'Schedule',
-                      data.isAsap
-                          ? 'ASAP — within 30 min'
-                          : '${data.scheduledDate.day}/${data.scheduledDate.month}/${data.scheduledDate.year} at ${data.scheduledTime.format(context)}',
-                    ),
-                    const SizedBox(height: 10),
-                    _buildDetailRow('Payment', '${data.paymentMethod} (${data.budget ?? '250'} LKR)'),
-                    const SizedBox(height: 10),
-                    _buildDetailRow('Preferences', '${data.preferredLanguage} · ${data.preferredGender} · Contact: ${data.contactPreference}'),
+                    _buildDetailRow('Instructions', data.description.isNotEmpty ? data.description : 'None'),
                     if (data.attachmentFileName != null) ...[
                       const SizedBox(height: 10),
                       _buildDetailRow('Attachment', data.attachmentFileName!),
@@ -153,7 +131,7 @@ class PatientTaskConfirmScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Cost Estimate Breakdown Card
+              // Fee summary card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -166,34 +144,30 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Cost Estimate',
+                      'PAYMENT SUMMARY',
                       style: TextStyle(
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: CareDropTheme.textPrimary,
+                        color: CareDropTheme.royalBlue,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    _buildPriceRow('Base fee', 'LKR ${baseFee.toStringAsFixed(2)}'),
+                    const SizedBox(height: 12),
+                    _buildPriceRow('Offered Budget', 'LKR ${baseFee.toStringAsFixed(2)}'),
                     const SizedBox(height: 8),
-                    _buildPriceRow('Platform fee', 'LKR ${platformFee.toStringAsFixed(2)}'),
-                    const Divider(height: 24, color: CareDropTheme.cardBorderColor),
+                    _buildPriceRow('Service Platform Fee', 'LKR ${platformFee.toStringAsFixed(2)}'),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Estimated Total',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: CareDropTheme.textPrimary,
-                          ),
-                        ),
+                        const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                         Text(
                           'LKR ${totalFee.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 20,
+                            fontSize: 16,
                             color: CareDropTheme.royalBlue,
                           ),
                         ),
@@ -219,6 +193,27 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
                     try {
+                      String? uploadedDocumentUrl = data.attachmentUrl;
+
+                      // Upload attachment file/bytes to Supabase Storage if attached and not yet uploaded
+                      if (uploadedDocumentUrl == null && data.attachmentFileName != null) {
+                        final storageService = SupabaseStorageService();
+                        if (data.localAttachmentPath != null && data.localAttachmentPath!.isNotEmpty) {
+                          final file = File(data.localAttachmentPath!);
+                          uploadedDocumentUrl = await storageService.uploadDocument(
+                            file: file,
+                            userId: currentUserId.isNotEmpty ? currentUserId : 'guest',
+                            fileName: data.attachmentFileName!,
+                          );
+                        } else if (data.attachmentBytes != null) {
+                          uploadedDocumentUrl = await storageService.uploadDocumentBytes(
+                            bytes: data.attachmentBytes,
+                            userId: currentUserId.isNotEmpty ? currentUserId : 'guest',
+                            fileName: data.attachmentFileName!,
+                          );
+                        }
+                      }
+
                       final category = TaskCategory.values.firstWhere(
                         (e) => e.name.toLowerCase() == data.taskType.toLowerCase().replaceAll(' ', ''),
                         orElse: () => TaskCategory.medicine,
@@ -245,6 +240,8 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                           ProofItem(title: 'Item Photo', isRequired: true),
                           ProofItem(title: 'Receipt / Handover Signature', isRequired: true),
                         ],
+                        attachmentUrl: uploadedDocumentUrl,
+                        attachmentFileName: data.attachmentFileName,
                       );
 
                       final taskId = await TaskService.createTask(newTask);
