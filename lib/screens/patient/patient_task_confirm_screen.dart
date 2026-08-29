@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../../models/task_creation_form_data.dart';
 import '../../models/task_model.dart';
+import '../../providers/app_state.dart';
 import '../../services/task_service.dart';
 import '../../services/supabase_storage_service.dart';
 import '../../theme/app_theme.dart';
@@ -22,6 +24,10 @@ class PatientTaskConfirmScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = formData ?? TaskCreationFormData(taskType: taskTypeName);
+    final appState = context.watch<CareDropAppState>();
+    final requesterName = appState.currentUserModel?.fullName.isNotEmpty == true
+        ? appState.currentUserModel!.fullName
+        : 'Pesara Ranthila';
 
     final baseFee = double.tryParse(data.budget ?? '250') ?? 250.0;
     const platformFee = 30.0;
@@ -232,7 +238,7 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                         isUrgent: data.priority == 'Urgent',
                         category: category,
                         deadline: data.isAsap ? 'ASAP' : 'Scheduled',
-                        patientInfo: '${data.preferredLanguage} · ${data.preferredGender}',
+                        patientInfo: requesterName,
                         description: data.description,
                         startTimeStr: DateTime.now().toString(),
                         progressStep: TaskProgressStep.pending,

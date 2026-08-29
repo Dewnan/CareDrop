@@ -9,10 +9,7 @@ import 'task_status_screen.dart';
 class TaskAcceptScreen extends StatelessWidget {
   final TaskModel task;
 
-  const TaskAcceptScreen({
-    super.key,
-    required this.task,
-  });
+  const TaskAcceptScreen({super.key, required this.task});
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +83,8 @@ class TaskAcceptScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _RowItem(
                       label: 'Earnings',
-                      value: '${task.currency} ${task.price.toStringAsFixed(2)}',
+                      value:
+                          '${task.currency} ${task.price.toStringAsFixed(2)}',
                     ),
                   ],
                 ),
@@ -112,7 +110,10 @@ class TaskAcceptScreen extends StatelessWidget {
                         icon: const Icon(Icons.near_me_outlined, size: 18),
                         label: const Text(
                           'Navigate',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                         onPressed: () {
                           context.read<CareDropAppState>().acceptTask(task);
@@ -132,7 +133,10 @@ class TaskAcceptScreen extends StatelessWidget {
                       height: 50,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white, width: 1.5),
+                          side: const BorderSide(
+                            color: Colors.white,
+                            width: 1.5,
+                          ),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -149,7 +153,10 @@ class TaskAcceptScreen extends StatelessWidget {
                         },
                         child: const Text(
                           'View Task',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),

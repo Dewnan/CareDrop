@@ -29,6 +29,15 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Flutter generated plugin registrants
+**/GeneratedPluginRegistrant.swift
+**/GeneratedPluginRegistrant.m
+**/GeneratedPluginRegistrant.java
+**/generated_plugin_registrant.cc
+**/generated_plugin_registrant.h
+**/generated_plugins.cmake
+
+
 # Symbolication & Obfuscation
 app.*.symbols
 app.*.map.json
@@ -41,7 +50,6 @@ app.*.map.json
 
 # Environment variables & secrets
 .env
-.env.*
 *.env
 *.keystore
 *.jks

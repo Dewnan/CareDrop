@@ -41,6 +41,8 @@ dependencies:
   supabase_flutter: ^2.8.4
   file_picker: ^12.1.1
   flutter_dotenv: ^5.2.1
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.2
 
 
 dev_dependencies:
@@ -67,6 +69,7 @@ flutter:
 
   assets:
     - .env
+    - assets/images/
 
 
   # To add assets to your application, add an assets section, like this:
