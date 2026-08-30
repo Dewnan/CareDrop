@@ -5,7 +5,6 @@ import '../../theme/app_theme.dart';
 
 import 'task_browse_screen.dart';
 import 'task_details_screen.dart';
-import 'task_status_screen.dart';
 import 'helper_map_screen.dart';
 import 'earnings_screen.dart';
 import 'profile_screen.dart';
@@ -348,7 +347,7 @@ class HelperDashboardView extends StatelessWidget {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => const TaskStatusScreen(),
+                                        builder: (_) => TaskDetailsScreen(task: activeTask),
                                       ),
                                     );
                                   },
