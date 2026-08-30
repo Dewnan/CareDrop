@@ -9,7 +9,6 @@ import '../../services/image_cache_service.dart';
 import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'helper_map_screen.dart';
-import 'task_accept_screen.dart';
 import 'task_status_screen.dart';
 
 /// Renders task details including clean patient name, location, inline document image preview, and full-screen viewer.
@@ -150,6 +149,52 @@ class TaskDetailsScreen extends StatelessWidget {
                         value: displayPickupSpot,
                       ),
                     ],
+
+                    // Show exact Room & Bed details once accepted
+                    if (isAccepted) ...[
+                      const SizedBox(height: 12),
+                      const _DetailItem(
+                        label: 'Room & Bed No.',
+                        value: 'Ward 4, Bed 12',
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Patient Contact',
+                            style: TextStyle(
+                              color: CareDropTheme.textMuted,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.phone, size: 14, color: CareDropTheme.royalBlue),
+                                SizedBox(width: 4),
+                                Text(
+                                  '+94 77 123 4567',
+                                  style: TextStyle(
+                                    color: CareDropTheme.royalBlue,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+
                     const SizedBox(height: 12),
                     _DetailItem(
                       label: 'Deadline',
@@ -174,7 +219,7 @@ class TaskDetailsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'What is Needed',
+                      'Description',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -233,9 +278,29 @@ class TaskDetailsScreen extends StatelessWidget {
                           assignedHelperId: helperId,
                         );
                         context.read<CareDropAppState>().acceptTask(acceptedTask);
+
+                        // Feedback SnackBar confirmation
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: const Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text('Task Accepted'),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: const Color(0xFF15803D),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+
                         navigator.pushReplacement(
                           MaterialPageRoute(
-                            builder: (_) => TaskAcceptScreen(task: acceptedTask),
+                            builder: (_) => TaskDetailsScreen(task: acceptedTask),
                           ),
                         );
                       } else {
@@ -248,7 +313,7 @@ class TaskDetailsScreen extends StatelessWidget {
                       }
                     },
                     child: Text(
-                      'Accept Task — LKR ${task.price.toStringAsFixed(2)}',
+                      'Accept Task - LKR ${task.price.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
