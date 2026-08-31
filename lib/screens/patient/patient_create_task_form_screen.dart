@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:latlong2/latlong.dart';
+import '../../components/location_picker_map.dart';
 import '../../models/task_creation_form_data.dart';
+import '../../services/geoapify_service.dart';
 import '../../theme/app_theme.dart';
 import 'patient_task_confirm_screen.dart';
 
@@ -41,6 +45,15 @@ class _PatientCreateTaskFormScreenState
   late TextEditingController _itemQuantityController;
   late TextEditingController _itemInstructionsController;
 
+  // Address autocomplete search state
+  List<GeoapifySearchResult> _pickupSearchResults = [];
+  bool _isSearchingPickup = false;
+  Timer? _pickupDebounceTimer;
+
+  List<GeoapifySearchResult> _dropoffSearchResults = [];
+  bool _isSearchingDropoff = false;
+  Timer? _dropoffDebounceTimer;
+
   // Pre-defined Task Types without icons
   final List<String> _taskTypeOptions = [
     'Medicine Pickup',
@@ -71,6 +84,8 @@ class _PatientCreateTaskFormScreenState
 
   @override
   void dispose() {
+    _pickupDebounceTimer?.cancel();
+    _dropoffDebounceTimer?.cancel();
     _pickupHospitalController.dispose();
     _pickupBuildingController.dispose();
     _pickupWardController.dispose();
@@ -84,6 +99,60 @@ class _PatientCreateTaskFormScreenState
     _itemQuantityController.dispose();
     _itemInstructionsController.dispose();
     super.dispose();
+  }
+
+  /// Handles real-time search query changes for pickup or dropoff location with debounce.
+  void _onLocationSearchChanged(String query, {required bool isPickup}) {
+    if (isPickup) {
+      _pickupDebounceTimer?.cancel();
+      if (query.trim().length < 3) {
+        setState(() => _pickupSearchResults = []);
+        return;
+      }
+      _pickupDebounceTimer = Timer(const Duration(milliseconds: 400), () async {
+        setState(() => _isSearchingPickup = true);
+        final results = await GeoapifyService.searchAddress(query);
+        if (mounted) {
+          setState(() {
+            _pickupSearchResults = results;
+            _isSearchingPickup = false;
+          });
+        }
+      });
+    } else {
+      _dropoffDebounceTimer?.cancel();
+      if (query.trim().length < 3) {
+        setState(() => _dropoffSearchResults = []);
+        return;
+      }
+      _dropoffDebounceTimer = Timer(const Duration(milliseconds: 400), () async {
+        setState(() => _isSearchingDropoff = true);
+        final results = await GeoapifyService.searchAddress(query);
+        if (mounted) {
+          setState(() {
+            _dropoffSearchResults = results;
+            _isSearchingDropoff = false;
+          });
+        }
+      });
+    }
+  }
+
+  /// Binds selected autocomplete address and coordinates to the task form data.
+  void _selectLocationResult(GeoapifySearchResult result, {required bool isPickup}) {
+    setState(() {
+      if (isPickup) {
+        _formData.pickupLat = result.latitude;
+        _formData.pickupLng = result.longitude;
+        _pickupHospitalController.text = result.formattedAddress;
+        _pickupSearchResults = [];
+      } else {
+        _formData.dropoffLat = result.latitude;
+        _formData.dropoffLng = result.longitude;
+        _dropoffWardController.text = result.formattedAddress;
+        _dropoffSearchResults = [];
+      }
+    });
   }
 
   // Determine which form sections are required based on selected task type
@@ -230,96 +299,50 @@ class _PatientCreateTaskFormScreenState
     }
   }
 
-  // Simulate opening map picker dialog for pickup or dropoff location
-  void _openMapPicker({required bool isPickup}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  // Opens interactive LocationPickerMap component for pickup or dropoff selection
+  Future<void> _openMapPicker({required bool isPickup}) async {
+    final initialLocation = isPickup
+        ? (_formData.pickupLat != null && _formData.pickupLng != null
+            ? LatLng(_formData.pickupLat!, _formData.pickupLng!)
+            : null)
+        : (_formData.dropoffLat != null && _formData.dropoffLng != null
+            ? LatLng(_formData.dropoffLat!, _formData.dropoffLng!)
+            : null);
+
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LocationPickerMap(
+          title: isPickup ? 'Select Pickup Location' : 'Select Drop-off Location',
+          initialLocation: initialLocation,
+        ),
       ),
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          height: 380,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    isPickup ? 'Select Pickup Location on Map' : 'Select Drop-off Location on Map',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Map preview placeholder card
-              Container(
-                height: 160,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: CareDropTheme.royalBlue.withValues(alpha: 0.3)),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.location_on, color: CareDropTheme.royalBlue, size: 40),
-                      SizedBox(height: 8),
-                      Text(
-                        'Map Location Picker',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: CareDropTheme.royalBlue),
-                      ),
-                      Text(
-                        'Tap to set precise GPS pin',
-                        style: TextStyle(fontSize: 12, color: CareDropTheme.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: CareDropTheme.royalBlue,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      if (isPickup) {
-                        _formData.pickupLat = 6.9271;
-                        _formData.pickupLng = 79.8612;
-                        if (_pickupHospitalController.text.isEmpty) {
-                          _pickupHospitalController.text = 'Pickup Point (Selected via Map)';
-                        }
-                      } else {
-                        _formData.dropoffLat = 6.9275;
-                        _formData.dropoffLng = 79.8618;
-                        if (_dropoffWardController.text.isEmpty) {
-                          _dropoffWardController.text = 'Drop off Point (Selected via Map)';
-                        }
-                      }
-                    });
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('Confirm Location Pin'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
+
+    if (result != null && mounted) {
+      final location = result['location'] as LatLng?;
+      final address = result['address'] as String?;
+
+      if (location != null) {
+        setState(() {
+          if (isPickup) {
+            _formData.pickupLat = location.latitude;
+            _formData.pickupLng = location.longitude;
+            if (address != null && address.isNotEmpty) {
+              _pickupHospitalController.text = address;
+            }
+          } else {
+            _formData.dropoffLat = location.latitude;
+            _formData.dropoffLng = location.longitude;
+            if (address != null && address.isNotEmpty) {
+              _dropoffWardController.text = address;
+            }
+          }
+        });
+      }
+    }
   }
+
 
   // Validates and submits task creation form with null safety
   void _submitForm() {
@@ -456,32 +479,81 @@ class _PatientCreateTaskFormScreenState
               const SizedBox(height: 8),
               _buildCard([
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _buildTextField(
-                        label: 'Hospital / Location Name *',
-                        controller: _pickupHospitalController,
-                        required: true,
-                        hintText: 'e.g. National Hospital / Pharmacy Name',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTextField(
+                            label: 'Hospital / Location Name *',
+                            controller: _pickupHospitalController,
+                            required: true,
+                            hintText: 'Type address or search location...',
+                            onChanged: (val) => _onLocationSearchChanged(val, isPickup: true),
+                          ),
+                          if (_isSearchingPickup)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4),
+                              child: LinearProgressIndicator(minHeight: 2),
+                            ),
+                          if (_pickupSearchResults.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: CareDropTheme.cardBorderColor),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 6,
+                                    offset: Offset(0, 2),
+                                  )
+                                ],
+                              ),
+                              constraints: const BoxConstraints(maxHeight: 180),
+                              child: ListView.separated(
+                                padding: EdgeInsets.zero,
+                                shrinkWrap: true,
+                                itemCount: _pickupSearchResults.length,
+                                separatorBuilder: (_, _) => const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final res = _pickupSearchResults[index];
+                                  return ListTile(
+                                    dense: true,
+                                    visualDensity: VisualDensity.compact,
+                                    leading: const Icon(Icons.location_on_outlined, size: 18, color: CareDropTheme.royalBlue),
+                                    title: Text(res.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                    subtitle: Text(res.formattedAddress, style: const TextStyle(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    onTap: () => _selectLocationResult(res, isPickup: true),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.map, color: CareDropTheme.royalBlue),
-                      tooltip: 'Select on Map',
-                      onPressed: () => _openMapPicker(isPickup: true),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 24),
+                      child: IconButton(
+                        icon: const Icon(Icons.map, color: CareDropTheme.royalBlue),
+                        tooltip: 'Select on Map',
+                        onPressed: () => _openMapPicker(isPickup: true),
+                      ),
                     ),
                   ],
                 ),
                 if (_formData.pickupLat != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       const Icon(Icons.check_circle, color: Colors.green, size: 14),
                       const SizedBox(width: 4),
                       Text(
                         'Map location pinned (${_formData.pickupLat?.toStringAsFixed(4)}, ${_formData.pickupLng?.toStringAsFixed(4)})',
-                        style: const TextStyle(fontSize: 11, color: Colors.green),
+                        style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -521,23 +593,85 @@ class _PatientCreateTaskFormScreenState
                 const SizedBox(height: 8),
                 _buildCard([
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: _buildTextField(
-                          label: 'Drop-off Ward / Address *',
-                          controller: _dropoffWardController,
-                          required: true,
-                          hintText: 'e.g. Discharge Counter / Home Address',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTextField(
+                              label: 'Drop-off Ward / Address *',
+                              controller: _dropoffWardController,
+                              required: true,
+                              hintText: 'Type address or search location...',
+                              onChanged: (val) => _onLocationSearchChanged(val, isPickup: false),
+                            ),
+                            if (_isSearchingDropoff)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 4),
+                                child: LinearProgressIndicator(minHeight: 2),
+                              ),
+                            if (_dropoffSearchResults.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: CareDropTheme.cardBorderColor),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 6,
+                                      offset: Offset(0, 2),
+                                    )
+                                  ],
+                                ),
+                                constraints: const BoxConstraints(maxHeight: 180),
+                                child: ListView.separated(
+                                  padding: EdgeInsets.zero,
+                                  shrinkWrap: true,
+                                  itemCount: _dropoffSearchResults.length,
+                                  separatorBuilder: (_, _) => const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final res = _dropoffSearchResults[index];
+                                    return ListTile(
+                                      dense: true,
+                                      visualDensity: VisualDensity.compact,
+                                      leading: const Icon(Icons.location_on_outlined, size: 18, color: CareDropTheme.royalBlue),
+                                      title: Text(res.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                      subtitle: Text(res.formattedAddress, style: const TextStyle(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      onTap: () => _selectLocationResult(res, isPickup: false),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.map, color: CareDropTheme.royalBlue),
-                        tooltip: 'Select on Map',
-                        onPressed: () => _openMapPicker(isPickup: false),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24),
+                        child: IconButton(
+                          icon: const Icon(Icons.map, color: CareDropTheme.royalBlue),
+                          tooltip: 'Select on Map',
+                          onPressed: () => _openMapPicker(isPickup: false),
+                        ),
                       ),
                     ],
                   ),
+                  if (_formData.dropoffLat != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Map location pinned (${_formData.dropoffLat?.toStringAsFixed(4)}, ${_formData.dropoffLng?.toStringAsFixed(4)})',
+                          style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   _buildTextField(
                     label: 'Room / Bed / Desk Number',
@@ -849,6 +983,7 @@ class _PatientCreateTaskFormScreenState
     int maxLines = 1,
     String? hintText,
     TextInputType keyboardType = TextInputType.text,
+    ValueChanged<String>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -866,6 +1001,7 @@ class _PatientCreateTaskFormScreenState
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
+          onChanged: onChanged,
           validator: required
               ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null
               : null,

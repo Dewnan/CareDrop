@@ -96,6 +96,12 @@ class TaskModel {
   final String locationDetail;
   final double? latitude;
   final double? longitude;
+  final String? pickupAddress;
+  final double? pickupLat;
+  final double? pickupLng;
+  final String? dropoffAddress;
+  final double? dropoffLat;
+  final double? dropoffLng;
   final String distanceStr;
   final double distanceKm;
   final String currency;
@@ -120,6 +126,12 @@ class TaskModel {
     required this.locationDetail,
     this.latitude,
     this.longitude,
+    this.pickupAddress,
+    this.pickupLat,
+    this.pickupLng,
+    this.dropoffAddress,
+    this.dropoffLat,
+    this.dropoffLng,
     required this.distanceStr,
     required this.distanceKm,
     required this.currency,
@@ -141,6 +153,12 @@ class TaskModel {
     String? id,
     String? patientId,
     String? assignedHelperId,
+    String? pickupAddress,
+    double? pickupLat,
+    double? pickupLng,
+    String? dropoffAddress,
+    double? dropoffLat,
+    double? dropoffLng,
     TaskProgressStep? progressStep,
     List<ProofItem>? proofItems,
     String? attachmentUrl,
@@ -155,6 +173,12 @@ class TaskModel {
       locationDetail: locationDetail,
       latitude: latitude,
       longitude: longitude,
+      pickupAddress: pickupAddress ?? this.pickupAddress,
+      pickupLat: pickupLat ?? this.pickupLat,
+      pickupLng: pickupLng ?? this.pickupLng,
+      dropoffAddress: dropoffAddress ?? this.dropoffAddress,
+      dropoffLat: dropoffLat ?? this.dropoffLat,
+      dropoffLng: dropoffLng ?? this.dropoffLng,
       distanceStr: distanceStr,
       distanceKm: distanceKm,
       currency: currency,
@@ -183,6 +207,12 @@ class TaskModel {
       'locationDetail': locationDetail,
       'latitude': latitude,
       'longitude': longitude,
+      'pickupAddress': pickupAddress,
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
+      'dropoffAddress': dropoffAddress,
+      'dropoffLat': dropoffLat,
+      'dropoffLng': dropoffLng,
       'distanceStr': distanceStr,
       'distanceKm': distanceKm,
       'currency': currency,
@@ -211,6 +241,12 @@ class TaskModel {
       locationDetail: map['locationDetail'] as String? ?? '',
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
+      pickupAddress: map['pickupAddress'] as String?,
+      pickupLat: (map['pickupLat'] as num?)?.toDouble(),
+      pickupLng: (map['pickupLng'] as num?)?.toDouble(),
+      dropoffAddress: map['dropoffAddress'] as String?,
+      dropoffLat: (map['dropoffLat'] as num?)?.toDouble(),
+      dropoffLng: (map['dropoffLng'] as num?)?.toDouble(),
       distanceStr: map['distanceStr'] as String? ?? '0.0 km',
       distanceKm: (map['distanceKm'] as num?)?.toDouble() ?? 0.0,
       currency: map['currency'] as String? ?? 'LKR',
@@ -237,3 +273,4 @@ class TaskModel {
     );
   }
 }
+

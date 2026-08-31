@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:latlong2/latlong.dart';
+import '../../components/route_preview_map.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/image_cache_service.dart';
@@ -149,6 +151,25 @@ class TaskDetailsScreen extends StatelessWidget {
                         value: displayPickupSpot,
                       ),
                     ],
+
+                    // Route Preview Map for Helpers
+                    if (task.pickupLat != null && task.pickupLng != null && task.dropoffLat != null && task.dropoffLng != null) ...[
+                      const SizedBox(height: 16),
+                      RoutePreviewMap(
+                        pickupLocation: LatLng(task.pickupLat!, task.pickupLng!),
+                        dropoffLocation: LatLng(task.dropoffLat!, task.dropoffLng!),
+                        pickupAddress: task.pickupAddress ?? displayPickupSpot,
+                        dropoffAddress: task.dropoffAddress,
+                      ),
+                    ] else if (task.latitude != null && task.longitude != null) ...[
+                      const SizedBox(height: 16),
+                      RoutePreviewMap(
+                        pickupLocation: LatLng(task.latitude!, task.longitude!),
+                        dropoffLocation: LatLng(task.latitude!, task.longitude!),
+                        pickupAddress: displayGeneralLocation,
+                      ),
+                    ],
+
 
                     // Show exact Room & Bed details once accepted
                     if (isAccepted) ...[
@@ -578,6 +599,7 @@ class _DetailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -586,12 +608,16 @@ class _DetailItem extends StatelessWidget {
             fontSize: 13,
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            color: CareDropTheme.textPrimary,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              color: CareDropTheme.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
