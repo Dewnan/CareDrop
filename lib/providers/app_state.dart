@@ -41,103 +41,13 @@ class CareDropAppState extends ChangeNotifier {
 
 
   // Available Tasks
-  final List<TaskModel> _availableTasks = [
-    TaskModel(
-      id: 'task_001',
-      title: 'Medication Pickup',
-      hospital: 'Padukka Base Hospital',
-      locationDetail: 'City Pharmacy',
-      distanceStr: '0.6 km away',
-      distanceKm: 0.6,
-      currency: 'RS',
-      price: 220.0,
-      isUrgent: false,
-      category: TaskCategory.medicine,
-      deadline: 'Within 30 minutes',
-      patientInfo: 'Pesara Ranthila',
-      description:
-          'Collect 3 prescription medications. Photograph receipt and bag upon collection.',
-      startTimeStr: '10:12 AM',
-      progressStep: TaskProgressStep.taskAccepted,
-      proofItems: [
-        ProofItem(
-          title: 'Photo of Completed Task',
-          isRequired: true,
-          isUploaded: true,
-        ),
-        ProofItem(
-          title: 'Receipt / Documentation',
-          isRequired: true,
-          isUploaded: true,
-        ),
-        ProofItem(
-          title: 'Additional Photo',
-          isRequired: false,
-          isUploaded: false,
-        ),
-      ],
-    ),
-    TaskModel(
-      id: 'task_002',
-      title: 'Collect Lab report',
-      hospital: 'KDH',
-      locationDetail: 'KDH Medical Records Office',
-      distanceStr: '0.2 km away',
-      distanceKm: 0.2,
-      currency: 'RS',
-      price: 200.0,
-      isUrgent: true,
-      category: TaskCategory.filing,
-      deadline: 'Within 15 minutes',
-      patientInfo: 'Pulindu',
-      description: 'Submit the recept and collect the report.',
-      startTimeStr: '11:30 AM',
-      proofItems: [
-        ProofItem(title: 'Photo of Stamped Document', isRequired: true),
-        ProofItem(title: 'Receipt / Counter Slip', isRequired: true),
-      ],
-    ),
-  ];
+  final List<TaskModel> _availableTasks = [];
 
   // Earnings History
-  final List<EarningsItem> _earningsHistory = [
-    EarningsItem(
-      id: 'earn_01',
-      title: 'Medication Pickup',
-      timeStr: 'Today, 10:45 AM',
-      currency: 'RS',
-      amount: 220.0,
-      isPending: true,
-    ),
-    EarningsItem(
-      id: 'earn_02',
-      title: 'Collect Lab report',
-      timeStr: 'Today, 8:30 AM',
-      currency: 'RS',
-      amount: 200.0,
-      isPending: false,
-    ),
-  ];
+  final List<EarningsItem> _earningsHistory = [];
 
   // Reviews List
-  final List<ReviewItem> _reviews = [
-    ReviewItem(
-      id: 'rev_01',
-      reviewerName: 'Pesara Ranthila',
-      avatarInitials: 'SA',
-      rating: 5.0,
-      comment: 'Very prompt and careful with medications.',
-      dateStr: '2 hours ago',
-    ),
-    ReviewItem(
-      id: 'rev_02',
-      reviewerName: 'Pulindu',
-      avatarInitials: 'AB',
-      rating: 5.0,
-      comment: 'Fast responce.',
-      dateStr: 'Yesterday',
-    ),
-  ];
+  final List<ReviewItem> _reviews = [];
 
   // Getters
   AppRole get currentRole => _currentRole;

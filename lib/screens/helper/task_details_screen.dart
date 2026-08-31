@@ -37,7 +37,7 @@ class TaskDetailsScreen extends StatelessWidget {
     final displayPatientName = (isPrefString || rawPatientInfo.trim().isEmpty)
         ? (appState.currentUserModel?.fullName.isNotEmpty == true
             ? appState.currentUserModel!.fullName
-            : 'Pesara Ranthila')
+            : 'Patient')
         : rawPatientInfo;
 
     // Sanitize Locations

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ import '../../providers/app_state.dart';
 import '../../services/task_service.dart';
 import '../../services/supabase_storage_service.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_feedback.dart';
 import 'patient_searching_helpers_screen.dart';
 
 /// Screen for reviewing and confirming task details before posting it to Firestore and Supabase Storage.
@@ -21,17 +23,69 @@ class PatientTaskConfirmScreen extends StatelessWidget {
     this.taskTypeName = 'Medicine Pickup',
   });
 
+  /// Formats non-empty address components without dangling commas or leading/trailing commas.
+  String _formatAddress(List<String?> parts, {String prefix = ''}) {
+    final cleanParts = parts
+        .where((p) => p != null && p.trim().isNotEmpty && p.trim() != ',')
+        .map((p) => p!.trim())
+        .toList();
+    if (cleanParts.isEmpty) return prefix.isNotEmpty ? prefix : 'Location specified';
+    return prefix.isNotEmpty ? '$prefix: ${cleanParts.join(', ')}' : cleanParts.join(', ');
+  }
+
+  /// Calculates dynamic distance between pickup and dropoff coordinates if present, or returns default estimated distance.
+  double _calculateDistanceKm(TaskCreationFormData data) {
+    if (data.pickupLat != null && data.pickupLng != null && data.dropoffLat != null && data.dropoffLng != null) {
+      const p = 0.017453292519943295; // Pi / 180
+      final a = 0.5 -
+          math.cos((data.dropoffLat! - data.pickupLat!) * p) / 2 +
+          math.cos(data.pickupLat! * p) *
+              math.cos(data.dropoffLat! * p) *
+              (1 - math.cos((data.dropoffLng! - data.pickupLng!) * p)) /
+              2;
+      final km = 12742 * math.asin(math.sqrt(a)); // 2 * R * asin(...)
+      return double.parse(km.toStringAsFixed(1));
+    }
+    return 1.5;
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = formData ?? TaskCreationFormData(taskType: taskTypeName);
     final appState = context.watch<CareDropAppState>();
-    final requesterName = appState.currentUserModel?.fullName.isNotEmpty == true
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final requesterName = (appState.currentUserModel?.fullName.isNotEmpty == true)
         ? appState.currentUserModel!.fullName
-        : 'Pesara Ranthila';
+        : (firebaseUser?.displayName?.isNotEmpty == true
+            ? firebaseUser!.displayName!
+            : 'Patient');
 
+    final isCashPayment = data.paymentMethod.toLowerCase().contains('cash');
     final baseFee = double.tryParse(data.budget ?? '250') ?? 250.0;
-    const platformFee = 30.0;
+    // Exclude service platform fee for Cash on Delivery per requirement 6
+    final platformFee = isCashPayment ? 0.0 : 30.0;
     final totalFee = baseFee + platformFee;
+
+    // Clean address strings per requirement 2
+    final pickupAddress = _formatAddress([
+      data.pickupHospital,
+      data.pickupBuilding,
+      data.pickupWard,
+      data.pickupRoomBed,
+    ]);
+
+    final dropoffAddress = _formatAddress([
+      data.dropoffWard.isNotEmpty ? 'Ward ${data.dropoffWard}' : null,
+      data.dropoffRoomBed.isNotEmpty ? 'Bed ${data.dropoffRoomBed}' : null,
+    ]);
+
+    // Schedule string per requirements 3 & 4
+    final dateStr = '${data.scheduledDate.year}-${data.scheduledDate.month.toString().padLeft(2, '0')}-${data.scheduledDate.day.toString().padLeft(2, '0')}';
+    final timeStr = data.scheduledTime.format(context);
+    final scheduleDisplay = '$dateStr at $timeStr';
+
+    final distanceKm = _calculateDistanceKm(data);
+    final distanceStr = '$distanceKm km';
 
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
@@ -120,11 +174,13 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     const Divider(height: 1),
                     const SizedBox(height: 16),
-                    _buildDetailRow('Pickup', '${data.pickupHospital} (${data.pickupBuilding}, ${data.pickupWard})'),
+                    _buildDetailRow('Pickup', pickupAddress),
                     const SizedBox(height: 10),
-                    _buildDetailRow('Drop-off', 'Ward ${data.dropoffWard}, Bed ${data.dropoffRoomBed}'),
+                    _buildDetailRow('Drop-off', dropoffAddress),
                     const SizedBox(height: 10),
-                    _buildDetailRow('Schedule', data.isAsap ? 'ASAP' : '${data.scheduledDate.toString().split(' ')[0]} ${data.scheduledTime.format(context)}'),
+                    _buildDetailRow('Schedule', scheduleDisplay),
+                    const SizedBox(height: 10),
+                    _buildDetailRow('Distance', distanceStr),
                     const SizedBox(height: 10),
                     _buildDetailRow('Instructions', data.description.isNotEmpty ? data.description : 'None'),
                     if (data.attachmentFileName != null) ...[
@@ -161,7 +217,12 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildPriceRow('Offered Budget', 'LKR ${baseFee.toStringAsFixed(2)}'),
                     const SizedBox(height: 8),
-                    _buildPriceRow('Service Platform Fee', 'LKR ${platformFee.toStringAsFixed(2)}'),
+                    _buildPriceRow('Payment Method', data.paymentMethod),
+                    const SizedBox(height: 8),
+                    _buildPriceRow(
+                      'Service Platform Fee',
+                      isCashPayment ? 'LKR 0.00 (Cash)' : 'LKR ${platformFee.toStringAsFixed(2)}',
+                    ),
                     const SizedBox(height: 12),
                     const Divider(height: 1),
                     const SizedBox(height: 12),
@@ -194,7 +255,6 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                     backgroundColor: CareDropTheme.royalBlue,
                   ),
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
                     final navigator = Navigator.of(context);
                     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
@@ -230,14 +290,14 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                         patientId: currentUserId,
                         title: data.taskType,
                         hospital: data.pickupHospital,
-                        locationDetail: '${data.pickupBuilding}, ${data.pickupWard}, ${data.pickupRoomBed}',
-                        distanceStr: '1.2 km',
-                        distanceKm: 1.2,
+                        locationDetail: pickupAddress,
+                        distanceStr: distanceStr,
+                        distanceKm: distanceKm,
                         currency: 'LKR',
                         price: totalFee,
                         isUrgent: data.priority == 'Urgent',
                         category: category,
-                        deadline: data.isAsap ? 'ASAP' : 'Scheduled',
+                        deadline: scheduleDisplay,
                         patientInfo: requesterName,
                         description: data.description,
                         startTimeStr: DateTime.now().toString(),
@@ -252,25 +312,22 @@ class PatientTaskConfirmScreen extends StatelessWidget {
 
                       final taskId = await TaskService.createTask(newTask);
 
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Task posted to Firestore! Searching for nearby available helpers...'),
-                          backgroundColor: Colors.green,
-                        ),
+                      if (!context.mounted) return;
+                      AppFeedback.showSuccess(
+                        context,
+                        'Task posted successfully! Searching for nearby available helpers...',
                       );
 
-                      if (!context.mounted) return;
                       navigator.push(
                         MaterialPageRoute(
                           builder: (_) => PatientSearchingHelpersScreen(taskId: taskId),
                         ),
                       );
                     } catch (e) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('Failed to post task: $e'),
-                          backgroundColor: Colors.red,
-                        ),
+                      if (!context.mounted) return;
+                      AppFeedback.showError(
+                        context,
+                        'Failed to post task: $e',
                       );
                     }
                   },
@@ -322,3 +379,4 @@ class PatientTaskConfirmScreen extends StatelessWidget {
     );
   }
 }
+
