@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/task_service.dart';
+import '../../services/user_profile_service.dart';
 import '../../theme/app_theme.dart';
 
 /// Renders the patient's real task history fetched dynamically from Firestore.
@@ -130,13 +131,22 @@ class PatientTaskHistoryScreen extends StatelessWidget {
                                   '${task.hospital} · ${task.deadline}',
                                   style: const TextStyle(color: CareDropTheme.textMuted, fontSize: 12),
                                 ),
-                                if (task.assignedHelperId != null && task.assignedHelperId!.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Helper: ${task.assignedHelperId}',
-                                    style: const TextStyle(color: CareDropTheme.textSecondary, fontSize: 12),
-                                  ),
-                                ],
+                                 if (task.assignedHelperId != null && task.assignedHelperId!.isNotEmpty) ...[
+                                   const SizedBox(height: 2),
+                                   FutureBuilder(
+                                     future: UserProfileService.getUserProfile(task.assignedHelperId!),
+                                     builder: (context, helperSnapshot) {
+                                       final helperName = helperSnapshot.data?.fullName;
+                                       final displayText = (helperName != null && helperName.isNotEmpty)
+                                           ? helperName
+                                           : task.assignedHelperId!;
+                                       return Text(
+                                         'Helper: $displayText',
+                                         style: const TextStyle(color: CareDropTheme.textSecondary, fontSize: 12),
+                                       );
+                                     },
+                                   ),
+                                 ],
                               ],
                             ),
                           ),

@@ -6,13 +6,13 @@ import 'package:caredrop/screens/common/landing_screen.dart';
 
 void main() {
   // Initial launch smoke test verifying LandingScreen renders title and button
-  testWidgets('CareDrop app initial launch smoke test', (WidgetTester tester) async {
+  testWidgets('CareDrop app initial launch smoke test', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       ChangeNotifierProvider(
         create: (_) => CareDropAppState(),
-        child: const MaterialApp(
-          home: LandingScreen(),
-        ),
+        child: const MaterialApp(home: LandingScreen()),
       ),
     );
 
