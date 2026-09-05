@@ -4,6 +4,8 @@ import '../../components/feedback_banner.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 
+import '../../models/task_model.dart';
+import '../../services/task_service.dart';
 import 'task_browse_screen.dart';
 import 'task_details_screen.dart';
 import 'helper_map_screen.dart';
@@ -84,6 +86,7 @@ class HelperMainMainScreen extends StatelessWidget {
 class HelperDashboardView extends StatelessWidget {
   const HelperDashboardView({super.key});
 
+  // Builds the main helper dashboard view showing online status, summary statistics, active task info, and live nearby pending tasks
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<CareDropAppState>();
@@ -419,23 +422,56 @@ class HelperDashboardView extends StatelessWidget {
 
                   const SizedBox(height: 4),
 
-                  // List of available nearby tasks
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: appState.availableTasks.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final task = appState.availableTasks[index];
-                      // Task item tile
-                      return _DashboardTaskTile(
-                        task: task,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => TaskDetailsScreen(task: task),
+                  // List of available nearby tasks streamed dynamically from TaskService
+                  StreamBuilder<List<TaskModel>>(
+                    stream: TaskService.streamPendingTasks(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      final tasks = snapshot.data ?? [];
+
+                      if (tasks.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: CareDropTheme.cardBorderColor),
+                          ),
+                          child: const Text(
+                            'No nearby tasks available right now.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: CareDropTheme.textMuted,
                             ),
+                          ),
+                        );
+                      }
+
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: tasks.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final task = tasks[index];
+                          // Task item tile
+                          return _DashboardTaskTile(
+                            task: task,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => TaskDetailsScreen(task: task),
+                                ),
+                              );
+                            },
                           );
                         },
                       );
