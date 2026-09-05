@@ -66,5 +66,19 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>https</string>
+		<string>http</string>
+		<string>googlemaps</string>
+		<string>maps</string>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CareDrop requires location access to find nearby helpers and display routing for tasks.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>CareDrop requires camera access to take proof of completion photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CareDrop requires photo library access to upload prescriptions and task documents.</string>
 </dict>
 </plist>
