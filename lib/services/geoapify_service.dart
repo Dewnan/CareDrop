@@ -101,41 +101,72 @@ class GeoapifyService {
     return null;
   }
 
-  /// Calculates driving route points between origin and destination coordinates.
+  /// Calculates real driving route points between origin and destination coordinates using Geoapify or OSRM fallback.
   static Future<List<LatLng>> fetchRoutePoints(LatLng origin, LatLng destination) async {
     final apiKey = _apiKey;
-    if (apiKey.isEmpty || apiKey == 'GEOAPIFY_API_KEY') {
-      return [origin, destination];
+    if (apiKey.isNotEmpty && apiKey != 'GEOAPIFY_API_KEY') {
+      final waypoints = '${origin.latitude},${origin.longitude}|${destination.latitude},${destination.longitude}';
+      final url = Uri.parse(
+        'https://api.geoapify.com/v1/routing?waypoints=$waypoints&mode=drive&apiKey=$apiKey',
+      );
+
+      try {
+        final response = await http.get(url);
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body) as Map<String, dynamic>;
+          final features = data['features'] as List<dynamic>? ?? [];
+          if (features.isNotEmpty) {
+            final geometry = features.first['geometry'] as Map<String, dynamic>? ?? {};
+            final coordinates = geometry['coordinates'] as List<dynamic>? ?? [];
+
+            List<LatLng> points = [];
+            _extractLatLngPoints(coordinates, points);
+            if (points.isNotEmpty) return points;
+          }
+        }
+      } catch (_) {}
     }
 
-    final waypoints = '${origin.latitude},${origin.longitude}|${destination.latitude},${destination.longitude}';
-    final url = Uri.parse(
-      'https://api.geoapify.com/v1/routing?waypoints=$waypoints&mode=drive&apiKey=$apiKey',
-    );
-
+    // Fallback to open-source OSRM driving router for real road geometry
     try {
-      final response = await http.get(url);
+      final osrmUrl = Uri.parse(
+        'https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?overview=full&geometries=geojson',
+      );
+      final response = await http.get(osrmUrl);
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
-        final features = data['features'] as List<dynamic>? ?? [];
-        if (features.isNotEmpty) {
-          final geometry = features.first['geometry'] as Map<String, dynamic>? ?? {};
+        final routes = data['routes'] as List<dynamic>? ?? [];
+        if (routes.isNotEmpty) {
+          final geometry = routes.first['geometry'] as Map<String, dynamic>? ?? {};
           final coordinates = geometry['coordinates'] as List<dynamic>? ?? [];
-
-          List<LatLng> points = [];
+          List<LatLng> osrmPoints = [];
           for (final coord in coordinates) {
             if (coord is List && coord.length >= 2) {
-              // Geoapify returns coordinates as [longitude, latitude]
               final lng = (coord[0] as num).toDouble();
               final lat = (coord[1] as num).toDouble();
-              points.add(LatLng(lat, lng));
+              osrmPoints.add(LatLng(lat, lng));
             }
           }
-          if (points.isNotEmpty) return points;
+          if (osrmPoints.isNotEmpty) return osrmPoints;
         }
       }
     } catch (_) {}
 
     return [origin, destination];
+  }
+
+  /// Recursively extracts LatLng points from nested GeoJSON coordinate arrays.
+  static void _extractLatLngPoints(List<dynamic> coordsList, List<LatLng> result) {
+    for (final item in coordsList) {
+      if (item is List) {
+        if (item.length >= 2 && item[0] is num && item[1] is num) {
+          final lng = (item[0] as num).toDouble();
+          final lat = (item[1] as num).toDouble();
+          result.add(LatLng(lat, lng));
+        } else {
+          _extractLatLngPoints(item, result);
+        }
+      }
+    }
   }
 }

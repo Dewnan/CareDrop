@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:map_launcher/map_launcher.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:caredrop/services/geoapify_service.dart';
 import 'package:caredrop/theme/app_theme.dart';
 
@@ -11,6 +12,7 @@ class RoutePreviewMap extends StatefulWidget {
   final LatLng dropoffLocation;
   final String? pickupAddress;
   final String? dropoffAddress;
+  final bool isAccepted;
 
   const RoutePreviewMap({
     super.key,
@@ -18,6 +20,7 @@ class RoutePreviewMap extends StatefulWidget {
     required this.dropoffLocation,
     this.pickupAddress,
     this.dropoffAddress,
+    this.isAccepted = false,
   });
 
   @override
@@ -48,10 +51,25 @@ class _RoutePreviewMapState extends State<RoutePreviewMap> {
     }
   }
 
-  /// Opens native external map apps for turn-by-turn navigation via map_launcher.
-  Future<void> _openExternalNavigation(LocationCoords destinationCoords, String title) async {
+  /// Opens native external map apps for turn-by-turn navigation via url_launcher and map_launcher.
+  Future<void> _openExternalNavigation(LatLng coords, String title) async {
+    final lat = coords.latitude;
+    final lng = coords.longitude;
+    final googleUrl = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+    final appleUrl = Uri.parse('https://maps.apple.com/?daddr=$lat,$lng');
+
     try {
-      await MapLauncher.directions(destinationCoords).show();
+      if (await canLaunchUrl(googleUrl)) {
+        await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
+        return;
+      } else if (await canLaunchUrl(appleUrl)) {
+        await launchUrl(appleUrl, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      await MapLauncher.directions(LocationCoords(lat, lng, title: title)).show();
     } catch (_) {}
   }
 
@@ -150,46 +168,60 @@ class _RoutePreviewMapState extends State<RoutePreviewMap> {
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _openExternalNavigation(
-                  LocationCoords(
-                    widget.pickupLocation.latitude,
-                    widget.pickupLocation.longitude,
-                    title: 'Pickup Location',
+        if (widget.isAccepted) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.green),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  'Pickup Location',
-                ),
-                icon: const Icon(Icons.navigation, size: 16, color: Colors.green),
-                label: const Text(
-                  'Navigate to Pickup',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  onPressed: () => _openExternalNavigation(
+                    widget.pickupLocation,
+                    widget.pickupAddress ?? 'Pickup Location',
+                  ),
+                  icon: const Icon(Icons.navigation, size: 16, color: Colors.green),
+                  label: const Text(
+                    'Open Map (Pickup)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _openExternalNavigation(
-                  LocationCoords(
-                    widget.dropoffLocation.latitude,
-                    widget.dropoffLocation.longitude,
-                    title: 'Dropoff Location',
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: CareDropTheme.royalBlue),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  'Dropoff Location',
-                ),
-                icon: const Icon(Icons.navigation, size: 16, color: Colors.redAccent),
-                label: const Text(
-                  'Navigate to Dropoff',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  onPressed: () => _openExternalNavigation(
+                    widget.dropoffLocation,
+                    widget.dropoffAddress ?? 'Dropoff Location',
+                  ),
+                  icon: const Icon(Icons.navigation, size: 16, color: CareDropTheme.royalBlue),
+                  label: const Text(
+                    'Open Map (Dropoff)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: CareDropTheme.royalBlue,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }

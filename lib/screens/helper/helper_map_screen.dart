@@ -1,8 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:map_launcher/map_launcher.dart';
+import '../../components/feedback_banner.dart';
 import '../../theme/app_theme.dart';
 
 class HelperMapScreen extends StatelessWidget {
   const HelperMapScreen({super.key});
+
+  /// Opens native map launcher for turn-by-turn navigation (e.g. Google Maps).
+  Future<void> _launchExternalMap(BuildContext context) async {
+    try {
+      await MapLauncher.directions(
+        LocationCoords(6.9271, 79.8612, title: 'Patient Pickup Point'),
+      ).show();
+    } catch (e) {
+      if (!context.mounted) return;
+      FeedbackBanner.show(
+        context,
+        message: 'Could not open external maps.',
+        type: FeedbackType.error,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,14 +197,7 @@ class HelperMapScreen extends StatelessWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: CareDropTheme.royalBlue,
                             ),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Opening Google Maps...'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
+                            onPressed: () => _launchExternalMap(context),
                             child: const Text(
                               'Open in Maps',
                               style: TextStyle(fontWeight: FontWeight.bold),
