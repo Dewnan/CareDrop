@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 void main() {
   setUpAll(() async {
-    dotenv.testLoad(fileInput: 'GEOAPIFY_API_KEY=test_key');
+    dotenv.loadFromString(envString: 'GEOAPIFY_API_KEY=test_key');
   });
 
   testWidgets('LocationPickerMap builds and renders My Location button', (WidgetTester tester) async {

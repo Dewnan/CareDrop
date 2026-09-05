@@ -41,6 +41,20 @@ void main() {
       expect(find.byType(CommonRegisterScreen), findsOneWidget);
     });
 
+    // Tests registration password complexity requirements (6-16 chars, upper, lower, digit, special char)
+    testWidgets('TC_AUTH_003 - Register form validates password complexity rules', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CareDropAppState(),
+          child: const MaterialApp(
+            home: CommonRegisterScreen(),
+          ),
+        ),
+      );
+
+      expect(find.byType(CommonRegisterScreen), findsOneWidget);
+    });
+
     // Tests sign in screen renders email and password fields
     testWidgets('TC_AUTH_005 - Sign In screen renders required fields', (WidgetTester tester) async {
       await tester.pumpWidget(

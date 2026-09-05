@@ -9,6 +9,7 @@ class RatingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<CareDropAppState>();
+    final helperUser = appState.helperUser;
     final reviews = appState.reviews;
 
     return Scaffold(
@@ -48,9 +49,9 @@ class RatingsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text(
-                    '4.9',
-                    style: TextStyle(
+                  Text(
+                    helperUser.rating > 0 ? helperUser.rating.toStringAsFixed(1) : '0.0',
+                    style: const TextStyle(
                       fontSize: 42,
                       fontWeight: FontWeight.bold,
                       color: CareDropTheme.textPrimary,
@@ -62,16 +63,18 @@ class RatingsScreen extends StatelessWidget {
                     children: List.generate(
                       5,
                       (index) => Icon(
-                        index < 4 ? Icons.star_rounded : Icons.star_half_rounded,
+                        index < helperUser.rating.floor()
+                            ? Icons.star_rounded
+                            : (index < helperUser.rating ? Icons.star_half_rounded : Icons.star_outline_rounded),
                         color: const Color(0xFFD97706),
                         size: 22,
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    '247 reviews',
-                    style: TextStyle(
+                  Text(
+                    '${reviews.length} ${reviews.length == 1 ? 'review' : 'reviews'}',
+                    style: const TextStyle(
                       color: CareDropTheme.textSecondary,
                       fontSize: 13,
                     ),

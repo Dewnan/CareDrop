@@ -75,8 +75,8 @@ class PatientTaskConfirmScreen extends StatelessWidget {
     ]);
 
     final dropoffAddress = _formatAddress([
-      data.dropoffWard.isNotEmpty ? 'Ward ${data.dropoffWard}' : null,
-      data.dropoffRoomBed.isNotEmpty ? 'Bed ${data.dropoffRoomBed}' : null,
+      data.dropoffWard.isNotEmpty ? data.dropoffWard : null,
+      data.dropoffRoomBed.isNotEmpty ? data.dropoffRoomBed : null,
     ]);
 
     // Schedule string per requirements 3 & 4
@@ -290,7 +290,13 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                         patientId: currentUserId,
                         title: data.taskType,
                         hospital: data.pickupHospital,
-                        locationDetail: pickupAddress,
+                        locationDetail: dropoffAddress.isNotEmpty ? dropoffAddress : pickupAddress,
+                        pickupAddress: pickupAddress.isNotEmpty ? pickupAddress : null,
+                        pickupLat: data.pickupLat,
+                        pickupLng: data.pickupLng,
+                        dropoffAddress: dropoffAddress.isNotEmpty ? dropoffAddress : null,
+                        dropoffLat: data.dropoffLat,
+                        dropoffLng: data.dropoffLng,
                         distanceStr: distanceStr,
                         distanceKm: distanceKm,
                         currency: 'LKR',

@@ -72,7 +72,7 @@ class HelperModel {
       icNumber: map['icNumber'] as String? ?? '',
       phoneNumber: map['phone'] as String? ?? map['phoneNumber'] as String? ?? '',
       email: map['email'] as String? ?? '',
-      rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
+      rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
       totalTasksCompleted: (map['totalTasksCompleted'] as num?)?.toInt() ?? 0,
       todayEarnings: (map['todayEarnings'] as num?)?.toDouble() ?? 0.0,
       verificationStatus: map['verificationStatus'] as String? ?? 'Verified',

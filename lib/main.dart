@@ -7,18 +7,20 @@ import 'models/user_model.dart';
 import 'providers/app_state.dart';
 import 'services/user_session_service.dart';
 import 'services/supabase_storage_service.dart';
+import 'services/permission_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/common/landing_screen.dart';
 import 'screens/patient/patient_dashboard_screen.dart';
 import 'screens/helper/helper_dashboard_screen.dart';
 
-/// Entry point of the application that initializes Firebase, Supabase, and runs the root app widget.
+/// Entry point of the application that initializes Firebase, Supabase, requests initial runtime permissions, and runs the root app widget.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await SupabaseStorageService().initialize();
+  await PermissionService.requestInitialPermissions();
   runApp(const CareDropApp());
 }
 

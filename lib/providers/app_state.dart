@@ -15,12 +15,12 @@ class CareDropAppState extends ChangeNotifier {
   UserModel? _currentUserModel;
 
   HelperModel _helperUser = HelperModel(
-    id: 'helper_001',
+    id: '',
     fullName: 'Helper User',
     icNumber: '',
     phoneNumber: '',
     email: '',
-    rating: 4.9,
+    rating: 0.0,
     totalTasksCompleted: 0,
     todayEarnings: 0.0,
     verificationStatus: 'Verified',

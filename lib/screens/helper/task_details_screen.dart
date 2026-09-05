@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../components/feedback_banner.dart';
 import '../../components/route_preview_map.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/image_cache_service.dart';
 import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
-import 'helper_map_screen.dart';
 import 'task_status_screen.dart';
 
 /// Renders task details including clean patient name, location, inline document image preview, and full-screen viewer.
@@ -25,8 +26,10 @@ class TaskDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<CareDropAppState>();
-    final activeTask = appState.activeTask;
-    final isAccepted = (activeTask?.id == task.id) || (task.progressStep != TaskProgressStep.pending);
+    final isAccepted = task.assignedHelperId != null || appState.activeTask?.id == task.id;
+    final customerPhone = appState.currentUserModel?.phone.isNotEmpty == true
+        ? appState.currentUserModel!.phone
+        : '+94 77 123 4567';
 
     // Sanitize Patient Name
     final rawPatientInfo = task.patientInfo;
@@ -40,12 +43,35 @@ class TaskDetailsScreen extends StatelessWidget {
             : 'Patient')
         : rawPatientInfo;
 
-    // Sanitize Locations
-    final cleanHospital = task.hospital.replaceAll('(select via map)', '').trim();
-    final displayGeneralLocation = cleanHospital.isNotEmpty ? cleanHospital : 'General Hospital';
+    // Format Pickup and Dropoff Locations cleanly
+    final rawPickup = task.pickupAddress ?? task.hospital;
+    final cleanPickup = rawPickup.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
+    final displayPickupLocation = cleanPickup.isNotEmpty ? cleanPickup : 'General Hospital Pickup';
 
-    final cleanPickup = task.locationDetail.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
-    final displayPickupSpot = (cleanPickup.isNotEmpty && cleanPickup != ',') ? cleanPickup : '';
+    String cleanDropoff = '';
+    if (task.dropoffAddress != null && task.dropoffAddress!.isNotEmpty) {
+      cleanDropoff = task.dropoffAddress!.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
+    } else if (task.locationDetail.isNotEmpty &&
+        task.locationDetail != task.pickupAddress &&
+        task.locationDetail != task.hospital &&
+        task.locationDetail != displayPickupLocation) {
+      cleanDropoff = task.locationDetail.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
+    }
+    final displayDropoffLocation = cleanDropoff.isNotEmpty ? cleanDropoff : 'Dropoff Point / Patient Ward';
+
+    // Format Room & Bed details cleanly: hide when empty or when identical to pickup/dropoff locations
+    String? roomBedDetail;
+    if (task.locationDetail.isNotEmpty && !task.locationDetail.contains('(select via map)')) {
+      final candidate = task.locationDetail.replaceAll(', ,', '').trim();
+      if (candidate.isNotEmpty &&
+          candidate != displayPickupLocation &&
+          candidate != displayDropoffLocation &&
+          candidate != task.hospital &&
+          candidate != task.pickupAddress &&
+          candidate != task.dropoffAddress) {
+        roomBedDetail = candidate;
+      }
+    }
 
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
@@ -141,16 +167,14 @@ class TaskDetailsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _DetailItem(
-                      label: 'General Location',
-                      value: displayGeneralLocation,
+                      label: 'Pickup Location',
+                      value: displayPickupLocation,
                     ),
-                    if (displayPickupSpot.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _DetailItem(
-                        label: 'Pickup Spot',
-                        value: displayPickupSpot,
-                      ),
-                    ],
+                    const SizedBox(height: 12),
+                    _DetailItem(
+                      label: 'Dropoff Location',
+                      value: displayDropoffLocation,
+                    ),
 
                     // Route Preview Map for Helpers
                     if (task.pickupLat != null && task.pickupLng != null && task.dropoffLat != null && task.dropoffLng != null) ...[
@@ -158,26 +182,30 @@ class TaskDetailsScreen extends StatelessWidget {
                       RoutePreviewMap(
                         pickupLocation: LatLng(task.pickupLat!, task.pickupLng!),
                         dropoffLocation: LatLng(task.dropoffLat!, task.dropoffLng!),
-                        pickupAddress: task.pickupAddress ?? displayPickupSpot,
-                        dropoffAddress: task.dropoffAddress,
+                        pickupAddress: displayPickupLocation,
+                        dropoffAddress: displayDropoffLocation,
+                        isAccepted: isAccepted,
                       ),
                     ] else if (task.latitude != null && task.longitude != null) ...[
                       const SizedBox(height: 16),
                       RoutePreviewMap(
                         pickupLocation: LatLng(task.latitude!, task.longitude!),
                         dropoffLocation: LatLng(task.latitude!, task.longitude!),
-                        pickupAddress: displayGeneralLocation,
+                        pickupAddress: displayPickupLocation,
+                        isAccepted: isAccepted,
                       ),
                     ],
 
-
                     // Show exact Room & Bed details once accepted
-                    if (isAccepted) ...[
+                    if (isAccepted && roomBedDetail != null && roomBedDetail.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      const _DetailItem(
+                      _DetailItem(
                         label: 'Room & Bed No.',
-                        value: 'Ward 4, Bed 12',
+                        value: roomBedDetail,
                       ),
+                    ],
+
+                    if (isAccepted) ...[
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -189,27 +217,12 @@ class TaskDetailsScreen extends StatelessWidget {
                               fontSize: 13,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFBFDBFE)),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.phone, size: 14, color: CareDropTheme.royalBlue),
-                                SizedBox(width: 4),
-                                Text(
-                                  '+94 77 123 4567',
-                                  style: TextStyle(
-                                    color: CareDropTheme.royalBlue,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            customerPhone,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: CareDropTheme.textPrimary,
                             ),
                           ),
                         ],
@@ -227,7 +240,7 @@ class TaskDetailsScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Description & Direct Image Display Card
+              // Patient Instructions & Attached Prescription / Documents Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -240,31 +253,40 @@ class TaskDetailsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Description',
+                      'Instructions & Attachments',
                       style: TextStyle(
-                        fontSize: 14,
                         fontWeight: FontWeight.bold,
+                        fontSize: 15,
                         color: CareDropTheme.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       task.description.isNotEmpty
                           ? task.description
-                          : 'No additional typed instructions provided.',
+                          : 'No special instructions provided by patient.',
                       style: const TextStyle(
                         fontSize: 13,
                         color: CareDropTheme.textSecondary,
                         height: 1.4,
                       ),
                     ),
-                    if (task.attachmentFileName != null && task.attachmentFileName!.isNotEmpty) ...[
-                      const SizedBox(height: 14),
-                      const Divider(color: CareDropTheme.cardBorderColor),
-                      const SizedBox(height: 12),
-                      _AttachmentDirectPreview(
-                        url: task.attachmentUrl,
-                        fileName: task.attachmentFileName!,
+                    if (task.attachmentUrl != null && task.attachmentUrl!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const Divider(color: CareDropTheme.cardBorderColor, height: 1),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Attached Document / Prescription',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: CareDropTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _DocumentImagePreview(
+                        imageUrl: task.attachmentUrl!,
+                        fileName: task.attachmentFileName ?? 'Prescription / Document',
                       ),
                     ],
                   ],
@@ -273,19 +295,32 @@ class TaskDetailsScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Action Buttons
-              if (!isAccepted)
+              // Bottom Action Button
+              if (!isAccepted) ...[
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: CareDropTheme.royalBlue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
                       final navigator = Navigator.of(context);
-                      final helperId = FirebaseAuth.instance.currentUser?.uid ?? '';
+                      final currentUser = FirebaseAuth.instance.currentUser;
+                      final helperId = currentUser?.uid ?? appState.currentUserModel?.id;
+
+                      if (helperId == null || helperId.isEmpty) {
+                        if (!context.mounted) return;
+                        FeedbackBanner.show(
+                          context,
+                          message: 'Please log in as a Helper to accept tasks.',
+                          type: FeedbackType.error,
+                        );
+                        return;
+                      }
 
                       final success = await TaskService.acceptTask(
                         taskId: task.id,
@@ -300,23 +335,11 @@ class TaskDetailsScreen extends StatelessWidget {
                         );
                         context.read<CareDropAppState>().acceptTask(acceptedTask);
 
-                        // Feedback SnackBar confirmation
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
-                                Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Text('Task Accepted'),
-                                ),
-                              ],
-                            ),
-                            backgroundColor: const Color(0xFF15803D),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            duration: const Duration(seconds: 3),
-                          ),
+                        // Feedback banner confirmation
+                        FeedbackBanner.show(
+                          context,
+                          message: 'Task Accepted successfully!',
+                          type: FeedbackType.success,
                         );
 
                         navigator.pushReplacement(
@@ -325,11 +348,11 @@ class TaskDetailsScreen extends StatelessWidget {
                           ),
                         );
                       } else {
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('This task has already been accepted by another helper!'),
-                            backgroundColor: Colors.red,
-                          ),
+                        if (!context.mounted) return;
+                        FeedbackBanner.show(
+                          context,
+                          message: 'This task has already been accepted by another helper!',
+                          type: FeedbackType.error,
                         );
                       }
                     },
@@ -341,52 +364,43 @@ class TaskDetailsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                )
-              else
+                ),
+              ] else ...[
                 Row(
                   children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: CareDropTheme.royalBlue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                    SizedBox(
+                      height: 52,
+                      width: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEFF6FF),
+                          foregroundColor: CareDropTheme.royalBlue,
+                          padding: EdgeInsets.zero,
+                          elevation: 0,
+                          side: const BorderSide(color: CareDropTheme.royalBlue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          icon: const Icon(Icons.near_me_outlined, size: 18),
-                          label: const Text(
-                            'Navigate',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const HelperMapScreen(),
-                              ),
-                            );
-                          },
                         ),
+                        onPressed: () async {
+                          final uri = Uri.parse('tel:${customerPhone.replaceAll(' ', '')}');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          }
+                        },
+                        child: const Icon(Icons.phone, color: CareDropTheme.royalBlue, size: 24),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: SizedBox(
-                        height: 50,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: CareDropTheme.royalBlue, width: 1.5),
-                            foregroundColor: CareDropTheme.royalBlue,
+                        height: 52,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF15803D),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-                          icon: const Icon(Icons.timer_outlined, size: 18),
-                          label: const Text(
-                            'Progress',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           onPressed: () {
                             Navigator.push(
@@ -396,16 +410,41 @@ class TaskDetailsScreen extends StatelessWidget {
                               ),
                             );
                           },
+                          child: const Text(
+                            'Continue',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+/// Renders a clean direct image preview widget for task attachments.
+class _DocumentImagePreview extends StatelessWidget {
+  final String imageUrl;
+  final String fileName;
+
+  const _DocumentImagePreview({
+    required this.imageUrl,
+    required this.fileName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _AttachmentDirectPreview(url: imageUrl, fileName: fileName);
   }
 }
 

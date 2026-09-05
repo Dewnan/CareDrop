@@ -7,7 +7,7 @@ import 'package:caredrop/screens/patient/patient_create_task_form_screen.dart';
 
 void main() {
   setUpAll(() async {
-    dotenv.testLoad(fileInput: 'GEOAPIFY_API_KEY=test_key');
+    dotenv.loadFromString(envString: 'GEOAPIFY_API_KEY=test_key');
   });
 
   group('Patient Task Creation Form Tests', () {

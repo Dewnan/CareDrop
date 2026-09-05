@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../components/feedback_banner.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 
@@ -127,14 +128,13 @@ class HelperDashboardView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      // Notification icon button popup trigger
+                      // Notification button feedback banner trigger
                       GestureDetector(
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Notifications Triggered!'),
-                              duration: Duration(seconds: 2),
-                            ),
+                          FeedbackBanner.show(
+                            context,
+                            message: 'No new notifications at this time',
+                            type: FeedbackType.info,
                           );
                         },
                         child: Container(
