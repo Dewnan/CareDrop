@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
+import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'task_complete_confirm_screen.dart';
 
@@ -15,10 +17,28 @@ class UploadProofScreen extends StatefulWidget {
 class _UploadProofScreenState extends State<UploadProofScreen> {
   bool _item1Done = false;
   bool _item2Done = false;
+  bool _isSubmitting = false;
 
-  /// Completes active task in app state and redirects to task completion confirmation screen.
-  void _handleCompleteTrip() {
-    context.read<CareDropAppState>().completeActiveTask();
+  /// Completes active task in Firestore and app state, then redirects to task completion confirmation screen.
+  Future<void> _handleCompleteTrip() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
+    final appState = context.read<CareDropAppState>();
+    final activeTask = appState.activeTask;
+
+    if (activeTask != null) {
+      try {
+        await TaskService.updateTaskProgress(
+          taskId: activeTask.id,
+          step: TaskProgressStep.completed,
+        );
+      } catch (_) {}
+    }
+
+    appState.completeActiveTask();
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

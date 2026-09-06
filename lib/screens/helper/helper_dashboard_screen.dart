@@ -273,7 +273,7 @@ class HelperDashboardView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Active task card if present
-                  if (activeTask != null) ...[
+                  if (activeTask != null && activeTask.progressStep != TaskProgressStep.completed) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(

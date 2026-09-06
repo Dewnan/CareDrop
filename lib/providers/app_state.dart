@@ -172,26 +172,27 @@ class CareDropAppState extends ChangeNotifier {
     }
   }
 
+  /// Completes the active task, updates earnings and history, and clears the active task reference.
   void completeActiveTask() {
     if (_activeTask != null) {
-      _activeTask = _activeTask!.copyWith(
-        progressStep: TaskProgressStep.completed,
-      );
+      final taskToComplete = _activeTask!;
       _earningsHistory.insert(
         0,
         EarningsItem(
           id: 'earn_${DateTime.now().millisecondsSinceEpoch}',
-          title: _activeTask!.title,
+          title: taskToComplete.title,
           timeStr: 'Just now',
-          currency: _activeTask!.currency,
-          amount: _activeTask!.price,
+          currency: taskToComplete.currency,
+          amount: taskToComplete.price,
           isPending: true,
         ),
       );
       _helperUser = _helperUser.copyWith(
         totalTasksCompleted: _helperUser.totalTasksCompleted + 1,
-        todayEarnings: _helperUser.todayEarnings + _activeTask!.price,
+        todayEarnings: _helperUser.todayEarnings + taskToComplete.price,
       );
+      _activeTask = null;
+      _activeTimerSeconds = 0;
       notifyListeners();
     }
   }
