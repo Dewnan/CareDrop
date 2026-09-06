@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:latlong2/latlong.dart';
+import '../../components/document_picker.dart';
 import '../../components/location_picker_map.dart';
 import '../../models/task_creation_form_data.dart';
 import '../../services/geoapify_service.dart';
@@ -172,104 +170,16 @@ class _PatientCreateTaskFormScreenState
       _formData.taskType == 'Pharmacy Purchase' ||
       _formData.taskType == 'Document Delivery';
 
-  /// Captures an image from the device camera or photo library using ImagePicker.
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: source,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        final bytes = await image.readAsBytes();
-        setState(() {
-          _formData.attachmentFileName = image.name;
-          _formData.localAttachmentPath = image.path;
-          _formData.attachmentBytes = bytes;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select image: $e')),
-        );
-      }
+  /// Prompts user with shared modal bottom sheet to pick a document or image file.
+  Future<void> _showDocumentPickerOptions() async {
+    final pickedFile = await showDocumentPicker(context);
+    if (pickedFile != null && mounted) {
+      setState(() {
+        _formData.attachmentFileName = pickedFile.name;
+        _formData.localAttachmentPath = pickedFile.path;
+        _formData.attachmentBytes = pickedFile.bytes;
+      });
     }
-  }
-
-  /// Opens the device document picker to select PDF or image files.
-  Future<void> _pickDocument() async {
-    try {
-      final result = await FilePickerPlatform.instance.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'],
-      );
-
-      if (result.isNotEmpty) {
-        final file = result.first;
-        final filePath = file.path;
-        dynamic fileBytes;
-        if (filePath != null && filePath.isNotEmpty) {
-          try {
-            fileBytes = await File(filePath).readAsBytes();
-          } catch (_) {}
-        }
-        setState(() {
-          _formData.attachmentFileName = file.name;
-          _formData.localAttachmentPath = filePath;
-          _formData.attachmentBytes = fileBytes;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select document: $e')),
-        );
-      }
-    }
-  }
-
-  /// Displays a modal bottom sheet for choosing between camera, photo library, or document files.
-  void _showDocumentPickerOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined, color: CareDropTheme.royalBlue),
-              title: const Text('Choose Document (PDF / File)'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickDocument();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera, color: CareDropTheme.royalBlue),
-              title: const Text('Take a Photo (Camera)'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: CareDropTheme.royalBlue),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _selectDate() async {
