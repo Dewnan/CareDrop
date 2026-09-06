@@ -73,7 +73,6 @@ class FeedbackBanner extends StatelessWidget {
         iconData = Icons.error_rounded;
         break;
       case FeedbackType.info:
-      default:
         bgColor = const Color(0xFFEFF6FF);
         iconColor = CareDropTheme.royalBlue;
         iconData = Icons.info_rounded;

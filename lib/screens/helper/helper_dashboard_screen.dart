@@ -374,7 +374,7 @@ class HelperDashboardView extends StatelessWidget {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => const HelperMapScreen(),
+                                        builder: (_) => HelperMapScreen(task: activeTask),
                                       ),
                                     );
                                   },

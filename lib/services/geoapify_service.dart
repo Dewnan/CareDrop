@@ -69,6 +69,15 @@ class GeoapifyService {
     return [];
   }
 
+  /// Resolves a human-readable address query into a LatLng coordinate object via Geoapify search.
+  static Future<LatLng?> geocodeAddress(String query) async {
+    final results = await searchAddress(query);
+    if (results.isNotEmpty) {
+      return LatLng(results.first.latitude, results.first.longitude);
+    }
+    return null;
+  }
+
   /// Converts latitude and longitude coordinates into a human-readable address string with in-memory caching.
   static Future<String?> reverseGeocode(double lat, double lng) async {
     final key = '${lat.toStringAsFixed(4)},${lng.toStringAsFixed(4)}';

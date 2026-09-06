@@ -13,6 +13,7 @@ import '../../services/image_cache_service.dart';
 import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'task_status_screen.dart';
+import 'helper_map_screen.dart';
 
 /// Renders task details including clean patient name, location, inline document image preview, and full-screen viewer.
 class TaskDetailsScreen extends StatelessWidget {
@@ -338,13 +339,13 @@ class TaskDetailsScreen extends StatelessWidget {
                         // Feedback banner confirmation
                         FeedbackBanner.show(
                           context,
-                          message: 'Task Accepted successfully!',
+                          message: 'Task Accepted! Opening navigation map...',
                           type: FeedbackType.success,
                         );
 
                         navigator.pushReplacement(
                           MaterialPageRoute(
-                            builder: (_) => TaskDetailsScreen(task: acceptedTask),
+                            builder: (_) => HelperMapScreen(task: acceptedTask),
                           ),
                         );
                       } else {
@@ -391,34 +392,57 @@ class TaskDetailsScreen extends StatelessWidget {
                         child: const Icon(Icons.phone, color: CareDropTheme.royalBlue, size: 24),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: SizedBox(
                         height: 52,
-                        child: ElevatedButton(
+                        child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF15803D),
+                            backgroundColor: CareDropTheme.royalBlue,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.navigation_outlined, color: Colors.white, size: 20),
+                          label: const Text(
+                            'Navigate Map',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
                           onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const TaskStatusScreen(),
+                                builder: (_) => HelperMapScreen(task: task),
                               ),
                             );
                           },
-                          child: const Text(
-                            'Continue',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 52,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(color: CareDropTheme.cardBorderColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TaskStatusScreen(),
+                            ),
+                          );
+                        },
+                        child: const Icon(Icons.tune, color: CareDropTheme.textPrimary, size: 22),
                       ),
                     ),
                   ],

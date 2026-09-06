@@ -181,7 +181,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Continue'), findsOneWidget);
+      expect(find.text('Navigate Map'), findsOneWidget);
       expect(find.byIcon(Icons.phone), findsOneWidget);
       expect(find.text('Patient Contact'), findsOneWidget);
     });

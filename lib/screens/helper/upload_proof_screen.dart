@@ -4,6 +4,7 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import 'task_complete_confirm_screen.dart';
 
+/// Renders trip completion screen allowing helpers to upload optional task photos/receipts or complete the trip directly.
 class UploadProofScreen extends StatefulWidget {
   const UploadProofScreen({super.key});
 
@@ -12,9 +13,19 @@ class UploadProofScreen extends StatefulWidget {
 }
 
 class _UploadProofScreenState extends State<UploadProofScreen> {
-  bool _item1Done = true;
-  bool _item2Done = true;
-  bool _item3Done = false;
+  bool _item1Done = false;
+  bool _item2Done = false;
+
+  /// Completes active task in app state and redirects to task completion confirmation screen.
+  void _handleCompleteTrip() {
+    context.read<CareDropAppState>().completeActiveTask();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const TaskCompleteConfirmScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +33,7 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
       backgroundColor: CareDropTheme.backgroundColor,
       appBar: AppBar(
         title: const Text(
-          'Upload Proof',
+          'Complete Trip',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -45,45 +56,31 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Yellow Alert Banner
+              // Info Banner
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF9C3),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFDE047)),
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: CareDropTheme.royalBlue.withValues(alpha: 0.3)),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      color: Color(0xFFA16207),
-                      size: 20,
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Upload clear photos. Patient will review before payment is released.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF854D0E),
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: const Text(
+                  'Proof photos or receipt uploads are optional depending on your task agreement with the patient.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: CareDropTheme.textPrimary,
+                    height: 1.35,
+                  ),
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // Upload Item 1: Photo of Completed Task
+              // Upload Item 1: Photo of Completed Task (Optional)
               _UploadCard(
-                title: 'Photo of Completed Task',
-                subtitle: 'Required',
+                title: 'Photo of Completed Delivery / Task',
+                subtitle: 'Optional - Upload if required by task',
                 isDone: _item1Done,
-                icon: Icons.check_circle_outline_rounded,
                 onTap: () {
                   setState(() => _item1Done = !_item1Done);
                 },
@@ -91,54 +88,36 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
 
               const SizedBox(height: 12),
 
-              // Upload Item 2: Receipt / Documentation
+              // Upload Item 2: Receipt / Documentation (Optional)
               _UploadCard(
-                title: 'Receipt / Documentation',
-                subtitle: 'Required',
+                title: 'Receipt / Medical Documentation',
+                subtitle: 'Optional - Upload if required by task',
                 isDone: _item2Done,
-                icon: Icons.check_circle_outline_rounded,
                 onTap: () {
                   setState(() => _item2Done = !_item2Done);
                 },
               ),
 
-              const SizedBox(height: 12),
-
-              // Upload Item 3: Additional Photo
-              _UploadCard(
-                title: 'Additional Photo',
-                subtitle: 'Optional',
-                isDone: _item3Done,
-                icon: Icons.camera_alt_outlined,
-                onTap: () {
-                  setState(() => _item3Done = !_item3Done);
-                },
-              ),
-
               const Spacer(),
 
-              // Submit Completion Proof Button
+              // Complete Trip & Finish Button
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  onPressed: () {
-                    context.read<CareDropAppState>().completeActiveTask();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const TaskCompleteConfirmScreen(),
-                      ),
-                    );
-                  },
+                  onPressed: _handleCompleteTrip,
                   child: const Text(
-                    'Submit Completion Proof',
+                    'Complete Trip & Finish',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -155,14 +134,12 @@ class _UploadCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool isDone;
-  final IconData icon;
   final VoidCallback onTap;
 
   const _UploadCard({
     required this.title,
     required this.subtitle,
     required this.isDone,
-    required this.icon,
     required this.onTap,
   });
 
@@ -183,21 +160,6 @@ class _UploadCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: isDone ? const Color(0xFFDCFCE7) : const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDone ? CareDropTheme.royalBlue : CareDropTheme.cardBorderColor),
-              ),
-              child: Icon(
-                isDone ? Icons.check_circle_rounded : icon,
-                color: isDone ? CareDropTheme.royalBlue : CareDropTheme.textMuted,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,21 +183,21 @@ class _UploadCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (isDone)
-              const Text(
-                'Done',
-                style: TextStyle(
-                  color: CareDropTheme.royalBlue,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              )
-            else
-              const Icon(
-                Icons.upload_file_rounded,
-                color: CareDropTheme.textMuted,
-                size: 20,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDone ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
               ),
+              child: Text(
+                isDone ? 'Attached' : '+ Add',
+                style: TextStyle(
+                  color: isDone ? CareDropTheme.royalBlue : CareDropTheme.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
           ],
         ),
       ),

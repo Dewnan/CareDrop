@@ -1,12 +1,72 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'patient_review_proof_screen.dart';
 
+/// Renders real-time task status timeline for patients tracking helper progress.
 class PatientStatusTrackingScreen extends StatelessWidget {
-  const PatientStatusTrackingScreen({super.key});
+  final String? taskId;
+
+  const PatientStatusTrackingScreen({
+    super.key,
+    this.taskId,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (taskId != null && taskId!.isNotEmpty) {
+      return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection('tasks').doc(taskId).snapshots(),
+        builder: (context, snapshot) {
+          final taskData = snapshot.data?.data();
+          final progressStep = taskData?['progressStep'] as String? ?? 'taskAccepted';
+          final title = taskData?['title'] as String? ?? 'CareDrop Task';
+
+          final isAccepted = progressStep != 'pending';
+          final isEnRoutePickup = progressStep == 'taskAccepted' || progressStep == 'enRoute';
+          final isPickupConfirmed = progressStep == 'arrivedAtLocation' ||
+              progressStep == 'inProgress' ||
+              progressStep == 'uploadProof';
+          final isCompleted = progressStep == 'completed';
+
+          return _buildContent(
+            context,
+            taskTitle: title,
+            statusBadge: isCompleted
+                ? 'Completed'
+                : isPickupConfirmed
+                    ? 'Package / Patient Picked Up'
+                    : 'Helper En Route to Pickup',
+            isAccepted: isAccepted,
+            isEnRoutePickup: isEnRoutePickup,
+            isPickupConfirmed: isPickupConfirmed,
+            isCompleted: isCompleted,
+          );
+        },
+      );
+    }
+
+    return _buildContent(
+      context,
+      taskTitle: 'Medication Pickup',
+      statusBadge: 'In Progress',
+      isAccepted: true,
+      isEnRoutePickup: false,
+      isPickupConfirmed: true,
+      isCompleted: false,
+    );
+  }
+
+  /// Builds body content for task progress tracking timeline.
+  Widget _buildContent(
+    BuildContext context, {
+    required String taskTitle,
+    required String statusBadge,
+    required bool isAccepted,
+    required bool isEnRoutePickup,
+    required bool isPickupConfirmed,
+    required bool isCompleted,
+  }) {
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
       appBar: AppBar(
@@ -53,34 +113,40 @@ class PatientStatusTrackingScreen extends StatelessWidget {
                           child: const Icon(Icons.inventory_2_outlined, color: CareDropTheme.tealPrimary, size: 22),
                         ),
                         const SizedBox(width: 14),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Medication Pickup',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: CareDropTheme.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'In Progress',
-                                style: TextStyle(
-                                  color: Color(0xFFD97706),
-                                  fontSize: 11,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                taskTitle,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: CareDropTheme.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isCompleted
+                                      ? const Color(0xFFDCFCE7)
+                                      : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  statusBadge,
+                                  style: TextStyle(
+                                    color: isCompleted ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -89,30 +155,27 @@ class PatientStatusTrackingScreen extends StatelessWidget {
 
                     // Progress timeline items
                     _buildTimelineStep(
-                      title: 'Task Created',
-                      time: '9:30 AM',
-                      isCompleted: true,
-                    ),
-                    _buildTimelineStep(
-                      title: 'Helper Matched',
-                      time: '9:32 AM',
-                      isCompleted: true,
-                    ),
-                    _buildTimelineStep(
-                      title: 'En Route',
-                      time: '9:34 AM',
-                      isCompleted: true,
-                    ),
-                    _buildTimelineStep(
-                      title: 'At Location',
-                      time: '9:48 AM',
-                      isCompleted: true,
-                      isCurrent: true,
-                    ),
-                    _buildTimelineStep(
-                      title: 'Completed',
+                      title: 'Task Created & Matched',
                       time: '',
-                      isCompleted: false,
+                      isCompleted: true,
+                    ),
+                    _buildTimelineStep(
+                      title: 'Helper Heading to Pickup',
+                      time: '',
+                      isCompleted: isAccepted,
+                      isCurrent: isEnRoutePickup,
+                    ),
+                    _buildTimelineStep(
+                      title: 'Pickup Confirmed & Route to Dropoff',
+                      time: '',
+                      isCompleted: isPickupConfirmed || isCompleted,
+                      isCurrent: isPickupConfirmed && !isCompleted,
+                    ),
+                    _buildTimelineStep(
+                      title: 'Completed & Delivered',
+                      time: '',
+                      isCompleted: isCompleted,
+                      isCurrent: isCompleted,
                       isLast: true,
                     ),
                   ],
