@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../components/document_picker.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'task_complete_confirm_screen.dart';
 
-/// Renders trip completion screen allowing helpers to upload optional task photos/receipts or complete the trip directly.
+/// Renders trip completion screen allowing helpers to upload a receipt/documentation and add optional trip notes.
 class UploadProofScreen extends StatefulWidget {
   const UploadProofScreen({super.key});
 
@@ -15,9 +16,25 @@ class UploadProofScreen extends StatefulWidget {
 }
 
 class _UploadProofScreenState extends State<UploadProofScreen> {
-  bool _item1Done = false;
-  bool _item2Done = false;
+  PickedFileData? _attachedReceipt;
+  final TextEditingController _notesController = TextEditingController();
   bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  /// Prompts user to pick a receipt image or document via shared document picker modal sheet.
+  Future<void> _handlePickReceipt() async {
+    final picked = await showDocumentPicker(context);
+    if (picked != null && mounted) {
+      setState(() {
+        _attachedReceipt = picked;
+      });
+    }
+  }
 
   /// Completes active task in Firestore and app state, then redirects to task completion confirmation screen.
   Future<void> _handleCompleteTrip() async {
@@ -49,6 +66,8 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasAttachment = _attachedReceipt != null;
+
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
       appBar: AppBar(
@@ -76,51 +95,114 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Info Banner
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: CareDropTheme.royalBlue.withValues(alpha: 0.3)),
-                ),
-                child: const Text(
-                  'Proof photos or receipt uploads are optional depending on your task agreement with the patient.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: CareDropTheme.textPrimary,
-                    height: 1.35,
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Info Banner
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: CareDropTheme.royalBlue.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: const Text(
+                          'Receipt or document upload is optional depending on your task agreement with the patient.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: CareDropTheme.textPrimary,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Single Upload Section: Add Receipt
+                      const Text(
+                        'Receipt / Proof Document',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: CareDropTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      _UploadCard(
+                        title: 'Add Receipt / Documentation',
+                        subtitle: hasAttachment
+                            ? _attachedReceipt!.name
+                            : 'Optional - Upload photo or PDF receipt',
+                        isDone: hasAttachment,
+                        onTap: _handlePickReceipt,
+                        onRemove: hasAttachment
+                            ? () {
+                                setState(() => _attachedReceipt = null);
+                              }
+                            : null,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Additional Notes Text Box
+                      const Text(
+                        'Additional Notes (Optional)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: CareDropTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      TextField(
+                        controller: _notesController,
+                        maxLines: 4,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Enter any additional details or notes about this trip...',
+                          hintStyle: const TextStyle(
+                            color: CareDropTheme.textMuted,
+                            fontSize: 13,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.all(14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: CareDropTheme.cardBorderColor,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: CareDropTheme.cardBorderColor,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: CareDropTheme.royalBlue,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // Upload Item 1: Photo of Completed Task (Optional)
-              _UploadCard(
-                title: 'Photo of Completed Delivery / Task',
-                subtitle: 'Optional - Upload if required by task',
-                isDone: _item1Done,
-                onTap: () {
-                  setState(() => _item1Done = !_item1Done);
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              // Upload Item 2: Receipt / Documentation (Optional)
-              _UploadCard(
-                title: 'Receipt / Medical Documentation',
-                subtitle: 'Optional - Upload if required by task',
-                isDone: _item2Done,
-                onTap: () {
-                  setState(() => _item2Done = !_item2Done);
-                },
-              ),
-
-              const Spacer(),
-
-              // Complete Trip & Finish Button
+              // Complete Trip & Finish Action Button with Debounce
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -131,15 +213,24 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: _handleCompleteTrip,
-                  child: const Text(
-                    'Complete Trip & Finish',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  onPressed: _isSubmitting ? null : _handleCompleteTrip,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Complete Trip & Finish',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -150,17 +241,20 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
   }
 }
 
+/// Renders a single upload card with attachment state, custom image icon, and action button.
 class _UploadCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool isDone;
   final VoidCallback onTap;
+  final VoidCallback? onRemove;
 
   const _UploadCard({
     required this.title,
     required this.subtitle,
     required this.isDone,
     required this.onTap,
+    this.onRemove,
   });
 
   @override
@@ -180,6 +274,25 @@ class _UploadCard extends StatelessWidget {
         ),
         child: Row(
           children: [
+            Container(
+              width: 42,
+              height: 42,
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: isDone ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Image.asset(
+                'assets/images/attachment_icon.png',
+                fit: BoxFit.contain,
+                errorBuilder: (ctx, err, stack) => Icon(
+                  Icons.receipt_long,
+                  color: isDone ? CareDropTheme.royalBlue : CareDropTheme.textMuted,
+                  size: 24,
+                ),
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,29 +308,40 @@ class _UploadCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
                       fontSize: 12,
-                      color: CareDropTheme.textMuted,
+                      color: isDone ? CareDropTheme.royalBlue : CareDropTheme.textMuted,
+                      fontWeight: isDone ? FontWeight.w500 : FontWeight.normal,
                     ),
                   ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: isDone ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                isDone ? 'Attached' : '+ Add',
-                style: TextStyle(
-                  color: isDone ? CareDropTheme.royalBlue : CareDropTheme.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+            const SizedBox(width: 8),
+            if (isDone && onRemove != null)
+              IconButton(
+                icon: const Icon(Icons.close, size: 20, color: Colors.red),
+                onPressed: onRemove,
+                tooltip: 'Remove receipt',
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDone ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isDone ? 'Attached' : '+ Add',
+                  style: TextStyle(
+                    color: isDone ? CareDropTheme.royalBlue : CareDropTheme.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
