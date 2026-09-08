@@ -53,7 +53,10 @@ class PatientTaskConfirmScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = formData ?? TaskCreationFormData(taskType: taskTypeName);
     final appState = context.watch<CareDropAppState>();
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    User? firebaseUser;
+    try {
+      firebaseUser = FirebaseAuth.instance.currentUser;
+    } catch (_) {}
     final requesterName = (appState.currentUserModel?.fullName.isNotEmpty == true)
         ? appState.currentUserModel!.fullName
         : (firebaseUser?.displayName?.isNotEmpty == true
@@ -183,6 +186,14 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                     _buildDetailRow('Distance', distanceStr),
                     const SizedBox(height: 10),
                     _buildDetailRow('Instructions', data.description.isNotEmpty ? data.description : 'None'),
+                    if (data.taskType == 'Patient Caregiver') ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Duration', data.serviceDuration),
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Gender Pref.', data.preferredGender),
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Language Req.', data.preferredLanguage),
+                    ],
                     if (data.attachmentFileName != null) ...[
                       const SizedBox(height: 10),
                       _buildDetailRow('Attachment', data.attachmentFileName!),
@@ -258,6 +269,22 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                     final navigator = Navigator.of(context);
                     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
+                    final requiresPickup = data.taskType != 'Other';
+
+                    final requiresDropoff = data.taskType == 'Medicine Pickup' ||
+                        data.taskType == 'Pharmacy Purchase' ||
+                        data.taskType == 'Document Delivery';
+
+                    if (requiresPickup && (data.pickupLat == null || data.pickupLng == null)) {
+                      AppFeedback.showError(context, 'Pickup location coordinates are missing. Please pin location on map.');
+                      return;
+                    }
+
+                    if (requiresDropoff && (data.dropoffLat == null || data.dropoffLng == null)) {
+                      AppFeedback.showError(context, 'Drop-off location coordinates are missing. Please pin location on map.');
+                      return;
+                    }
+
                     try {
                       String? uploadedDocumentUrl = data.attachmentUrl;
 
@@ -314,6 +341,9 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                         ],
                         attachmentUrl: uploadedDocumentUrl,
                         attachmentFileName: data.attachmentFileName,
+                        serviceDuration: data.taskType == 'Patient Caregiver' ? data.serviceDuration : null,
+                        preferredGender: data.taskType == 'Patient Caregiver' ? data.preferredGender : null,
+                        preferredLanguage: data.taskType == 'Patient Caregiver' ? data.preferredLanguage : null,
                       );
 
                       final taskId = await TaskService.createTask(newTask);

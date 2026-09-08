@@ -46,5 +46,83 @@ void main() {
       );
       expect(dropoffFinder, findsOneWidget);
     });
+
+    // TC_TASK_005 - Verifies location validation error when submitting form without pinned map location
+    testWidgets('TC_TASK_005 - Prevents submission and shows snackbar when pickup location coordinates are unpinned', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CareDropAppState(),
+          child: const MaterialApp(
+            home: PatientCreateTaskFormScreen(initialTaskType: 'Medicine Pickup'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'Need paracetamol pickup from ward 2');
+      await tester.pumpAndSettle();
+
+      final submitButton = find.text('Review & Post Task');
+      await tester.scrollUntilVisible(
+        submitButton,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(submitButton);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Please select or pin'), findsOneWidget);
+    });
+
+    // TC_TASK_006 - Verifies Other task type allows empty pickup/dropoff locations
+    testWidgets('TC_TASK_006 - Other task type allows submission without requiring location coordinates', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CareDropAppState(),
+          child: const MaterialApp(
+            home: PatientCreateTaskFormScreen(initialTaskType: 'Other'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).first, 'General assistance needed');
+      await tester.pumpAndSettle();
+
+      final submitButton = find.text('Review & Post Task');
+      await tester.scrollUntilVisible(
+        submitButton,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(submitButton);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('Review & Confirm Task'), findsOneWidget);
+    });
+
+    // TC_TASK_007 - Verifies Patient Caregiver / Bedside Assistance task type renders duration, gender, and language preferences
+    testWidgets('TC_TASK_007 - Bedside assistance task renders duration, gender, and language preference fields', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => CareDropAppState(),
+          child: const MaterialApp(
+            home: PatientCreateTaskFormScreen(initialTaskType: 'Patient Caregiver / Bedside Assistance'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final sectionFinder = find.text('Service Duration (How long needed)');
+      await tester.scrollUntilVisible(
+        sectionFinder,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(sectionFinder, findsOneWidget);
+      expect(find.text('Preferred Helper Gender'), findsOneWidget);
+      expect(find.text('Language Requirement'), findsOneWidget);
+    });
   });
 }

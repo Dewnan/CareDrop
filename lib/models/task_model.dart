@@ -116,6 +116,9 @@ class TaskModel {
   final List<ProofItem> proofItems;
   final String? attachmentUrl;
   final String? attachmentFileName;
+  final String? serviceDuration;
+  final String? preferredGender;
+  final String? preferredLanguage;
 
   TaskModel({
     required this.id,
@@ -146,6 +149,9 @@ class TaskModel {
     required this.proofItems,
     this.attachmentUrl,
     this.attachmentFileName,
+    this.serviceDuration,
+    this.preferredGender,
+    this.preferredLanguage,
   });
 
   /// Creates a copy of the task model with optional field overrides.
@@ -163,6 +169,9 @@ class TaskModel {
     List<ProofItem>? proofItems,
     String? attachmentUrl,
     String? attachmentFileName,
+    String? serviceDuration,
+    String? preferredGender,
+    String? preferredLanguage,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -193,6 +202,9 @@ class TaskModel {
       proofItems: proofItems ?? this.proofItems,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,
       attachmentFileName: attachmentFileName ?? this.attachmentFileName,
+      serviceDuration: serviceDuration ?? this.serviceDuration,
+      preferredGender: preferredGender ?? this.preferredGender,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
     );
   }
 
@@ -227,6 +239,9 @@ class TaskModel {
       'proofItems': proofItems.map((e) => e.toMap()).toList(),
       'attachmentUrl': attachmentUrl,
       'attachmentFileName': attachmentFileName,
+      'serviceDuration': serviceDuration,
+      'preferredGender': preferredGender,
+      'preferredLanguage': preferredLanguage,
     };
   }
 
@@ -270,6 +285,9 @@ class TaskModel {
           [],
       attachmentUrl: map['attachmentUrl'] as String?,
       attachmentFileName: map['attachmentFileName'] as String?,
+      serviceDuration: map['serviceDuration'] as String?,
+      preferredGender: map['preferredGender'] as String?,
+      preferredLanguage: map['preferredLanguage'] as String?,
     );
   }
 }

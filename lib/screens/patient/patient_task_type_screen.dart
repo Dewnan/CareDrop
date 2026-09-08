@@ -16,13 +16,6 @@ class PatientTaskTypeScreen extends StatelessWidget {
         'iconColor': CareDropTheme.royalBlue,
       },
       {
-        'title': 'Food Pickup',
-        'subtitle': 'Deliver food/meals to patient at hospital ward',
-        'icon': Icons.fastfood_outlined,
-        'bgColor': const Color(0xFFECFDF5),
-        'iconColor': const Color(0xFF10B981),
-      },
-      {
         'title': 'Document Delivery',
         'subtitle': 'Submit or collect medical documents & reports',
         'icon': Icons.description_outlined,
@@ -37,9 +30,9 @@ class PatientTaskTypeScreen extends StatelessWidget {
         'iconColor': const Color(0xFF16A34A),
       },
       {
-        'title': 'Pharmacy Purchase',
-        'subtitle': 'Purchase non-prescription medical supplies',
-        'icon': Icons.local_pharmacy_outlined,
+        'title': 'Patient Caregiver / Bedside Assistance',
+        'subtitle': 'Request a helper to stay with patient at bedside/ward',
+        'icon': Icons.single_bed_outlined,
         'bgColor': const Color(0xFFF5F3FF),
         'iconColor': const Color(0xFF8B5CF6),
       },

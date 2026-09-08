@@ -41,9 +41,10 @@ class TaskCreationFormData {
   String? localAttachmentPath;
   dynamic attachmentBytes; // Uint8List for web/cross-platform support
 
-  // Helper Preferences & Contact Method
+  // Caregiver Preferences & Contact Method
+  String serviceDuration; // '2 Hours', '4 Hours', '8 Hours', '12 Hours'
   String preferredLanguage; // 'Sinhala', 'Tamil', 'English'
-  String preferredGender; // 'No preference', 'Male', 'Female'
+  String preferredGender; // 'Any', 'Male', 'Female'
   String contactPreference; // 'In-app Chat', 'Phone Call', 'Either'
 
   TaskCreationFormData({
@@ -70,8 +71,9 @@ class TaskCreationFormData {
     this.itemQuantity,
     this.itemSpecialInstructions,
     this.attachmentFileName,
+    this.serviceDuration = '2 Hours',
     this.preferredLanguage = 'Sinhala',
-    this.preferredGender = 'No preference',
+    this.preferredGender = 'Any',
     this.contactPreference = 'In-app Chat',
   })  : scheduledDate = scheduledDate ?? DateTime.now(),
         scheduledTime = scheduledTime ?? TimeOfDay.now();
