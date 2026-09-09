@@ -8,6 +8,7 @@ import 'providers/app_state.dart';
 import 'services/user_session_service.dart';
 import 'services/supabase_storage_service.dart';
 import 'services/permission_service.dart';
+import 'services/fcm_notification_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/common/landing_screen.dart';
 import 'screens/patient/patient_dashboard_screen.dart';
@@ -21,6 +22,7 @@ void main() async {
   );
   await SupabaseStorageService().initialize();
   await PermissionService.requestInitialPermissions();
+  FcmNotificationService.initializeForegroundListeners();
   runApp(const CareDropApp());
 }
 
