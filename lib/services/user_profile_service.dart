@@ -56,6 +56,26 @@ class UserProfileService {
     await _db.collection(_collectionPath).doc(uid).update(updates);
   }
 
+  /// Updates the online availability status, FCM push token, and current GPS coordinates for a helper profile
+  static Future<void> updateOnlineStatus({
+    required String uid,
+    required bool isOnline,
+    double? latitude,
+    double? longitude,
+    String? fcmToken,
+  }) async {
+    if (uid.isEmpty) return;
+    final Map<String, dynamic> updates = {
+      'isOnline': isOnline,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (latitude != null) updates['latitude'] = latitude;
+    if (longitude != null) updates['longitude'] = longitude;
+    if (fcmToken != null && fcmToken.isNotEmpty) updates['fcmToken'] = fcmToken;
+
+    await _db.collection(_collectionPath).doc(uid).set(updates, SetOptions(merge: true));
+  }
+
   /// Query profiles by role ('patient' or 'helper')
   static Future<List<UserModel>> getUsersByRole(String role) async {
     final snapshot = await _db

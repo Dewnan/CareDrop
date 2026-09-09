@@ -11,6 +11,9 @@ class HelperModel {
   final double todayEarnings;
   final String verificationStatus;
   final bool isOnline;
+  final double? latitude;
+  final double? longitude;
+  final double completionRate;
 
   HelperModel({
     required this.id,
@@ -23,8 +26,20 @@ class HelperModel {
     required this.todayEarnings,
     required this.verificationStatus,
     required this.isOnline,
+    this.latitude,
+    this.longitude,
+    this.completionRate = 100.0,
   });
 
+  /// Evaluates and returns the helper performance rank tier based on ratings and completed tasks
+  String get rankTier {
+    if (totalTasksCompleted >= 50 && rating >= 4.8) return 'Platinum';
+    if (totalTasksCompleted >= 21 && rating >= 4.7) return 'Gold';
+    if (totalTasksCompleted >= 6 && rating >= 4.5) return 'Silver';
+    return 'Bronze';
+  }
+
+  /// Creates a copy of HelperModel with optional updated fields
   HelperModel copyWith({
     String? fullName,
     String? icNumber,
@@ -35,6 +50,9 @@ class HelperModel {
     double? todayEarnings,
     String? verificationStatus,
     bool? isOnline,
+    double? latitude,
+    double? longitude,
+    double? completionRate,
   }) {
     return HelperModel(
       id: id,
@@ -47,9 +65,13 @@ class HelperModel {
       todayEarnings: todayEarnings ?? this.todayEarnings,
       verificationStatus: verificationStatus ?? this.verificationStatus,
       isOnline: isOnline ?? this.isOnline,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      completionRate: completionRate ?? this.completionRate,
     );
   }
 
+  /// Converts the HelperModel instance into a JSON-serializable Map
   Map<String, dynamic> toMap() {
     return {
       'uid': id,
@@ -62,9 +84,14 @@ class HelperModel {
       'todayEarnings': todayEarnings,
       'verificationStatus': verificationStatus,
       'isOnline': isOnline,
+      'latitude': latitude,
+      'longitude': longitude,
+      'completionRate': completionRate,
+      'rankTier': rankTier,
     };
   }
 
+  /// Deserializes a Map into a HelperModel object with fallback defaults
   factory HelperModel.fromMap(Map<String, dynamic> map, {String? docId}) {
     return HelperModel(
       id: docId ?? map['uid'] as String? ?? '',
@@ -77,11 +104,16 @@ class HelperModel {
       todayEarnings: (map['todayEarnings'] as num?)?.toDouble() ?? 0.0,
       verificationStatus: map['verificationStatus'] as String? ?? 'Verified',
       isOnline: map['isOnline'] as bool? ?? true,
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
+      completionRate: (map['completionRate'] as num?)?.toDouble() ?? 100.0,
     );
   }
 
+  /// Converts the HelperModel to a JSON string representation
   String toJson() => jsonEncode(toMap());
 
+  /// Creates a HelperModel instance from a JSON string
   factory HelperModel.fromJson(String source) =>
       HelperModel.fromMap(jsonDecode(source) as Map<String, dynamic>);
 }

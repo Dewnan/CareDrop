@@ -9,6 +9,7 @@ class PermissionService {
     try {
       await [
         Permission.location,
+        Permission.notification,
         Permission.camera,
         Permission.phone,
         Permission.storage,
