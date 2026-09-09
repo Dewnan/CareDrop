@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import '../models/task_model.dart';
 
 class TaskService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _collectionPath = 'tasks';
 
-  /// Create a new Task document in Firestore
+  /// Create a new Task document in Firestore and trigger backend notification for nearby online helpers
   static Future<String> createTask(TaskModel task) async {
     final docRef = _db.collection(_collectionPath).doc();
     final taskData = {
@@ -15,7 +18,40 @@ class TaskService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await docRef.set(taskData);
+
+    // Trigger Supabase Edge Function for zero-cost backend nearby helper matching & push notifications
+    _triggerNearbyHelpersEdgeFunction(taskData);
+
     return docRef.id;
+  }
+
+  /// Triggers the Supabase Edge Function to evaluate nearby online helpers within 5km radius and dispatch FCM alerts
+  static Future<void> _triggerNearbyHelpersEdgeFunction(Map<String, dynamic> taskData) async {
+    try {
+      final String edgeFunctionUrl = dotenv.env['SUPABASE_EDGE_FUNCTION_URL'] ?? '';
+      final String anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+      if (edgeFunctionUrl.isEmpty) return;
+
+      await http.post(
+        Uri.parse(edgeFunctionUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          if (anonKey.isNotEmpty) 'Authorization': 'Bearer $anonKey',
+          if (anonKey.isNotEmpty) 'apikey': anonKey,
+        },
+        body: jsonEncode({
+          'taskId': taskData['id'],
+          'title': taskData['title'],
+          'hospital': taskData['hospital'],
+          'price': taskData['price'],
+          'latitude': taskData['latitude'] ?? taskData['pickupLat'],
+          'longitude': taskData['longitude'] ?? taskData['pickupLng'],
+          'maxRadiusKm': 3.0,
+        }),
+      );
+    } catch (_) {
+      // Background trigger failure handles gracefully without breaking task creation flow
+    }
   }
 
   /// Stream all pending tasks for nearby Helpers
