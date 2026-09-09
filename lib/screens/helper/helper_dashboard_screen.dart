@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../components/feedback_banner.dart';
+import '../../components/offline_task_placeholder.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 
@@ -158,7 +159,7 @@ class HelperDashboardView extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // Online switch container
+                  // Online switch container & Rank Tier Badge
                   GestureDetector(
                     onTap: () => appState.toggleOnlineAvailability(),
                     child: Container(
@@ -198,9 +199,10 @@ class HelperDashboardView extends StatelessWidget {
                                     fontSize: 14,
                                   ),
                                 ),
+                                const SizedBox(height: 2),
                                 Text(
                                   user.isOnline
-                                      ? 'Visible to task requests'
+                                      ? 'You will receive nearby task'
                                       : 'Hidden from new tasks',
                                   style: TextStyle(
                                     color: Colors.white.withValues(alpha: 0.8),
@@ -423,36 +425,39 @@ class HelperDashboardView extends StatelessWidget {
                   const SizedBox(height: 4),
 
                   // List of available nearby tasks streamed dynamically from TaskService
-                  StreamBuilder<List<TaskModel>>(
-                    stream: TaskService.streamPendingTasks(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
+                  if (!user.isOnline)
+                    const OfflineTaskPlaceholder()
+                  else
+                    StreamBuilder<List<TaskModel>>(
+                      stream: TaskService.streamPendingTasks(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
 
-                      final tasks = snapshot.data ?? [];
+                        final tasks = snapshot.data ?? [];
 
-                      if (tasks.isEmpty) {
-                        return Container(
-                          padding: const EdgeInsets.all(20),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: CareDropTheme.cardBorderColor),
-                          ),
-                          child: const Text(
-                            'No nearby tasks available right now.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: CareDropTheme.textMuted,
+                        if (tasks.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(20),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: CareDropTheme.cardBorderColor),
                             ),
-                          ),
-                        );
-                      }
+                            child: const Text(
+                              'No nearby tasks available right now.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: CareDropTheme.textMuted,
+                              ),
+                            ),
+                          );
+                        }
 
                       return ListView.separated(
                         shrinkWrap: true,

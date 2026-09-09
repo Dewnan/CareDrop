@@ -6,6 +6,8 @@ import '../models/task_model.dart';
 import '../models/earnings_model.dart';
 import '../models/review_model.dart';
 import '../services/user_session_service.dart';
+import '../services/location_tracker_service.dart';
+import '../services/fcm_notification_service.dart';
 
 enum AppRole { landing, roleSelection, helper, patient }
 
@@ -90,6 +92,9 @@ class CareDropAppState extends ChangeNotifier {
     );
 
     UserSessionService.saveCachedUser(user);
+    if (isHelperRole) {
+      FcmNotificationService.registerFcmToken(uid: user.id);
+    }
     notifyListeners();
   }
 
@@ -129,9 +134,24 @@ class CareDropAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleOnlineAvailability() {
-    _helperUser = _helperUser.copyWith(isOnline: !_helperUser.isOnline);
+  /// Toggles the online availability of the helper, starts/stops background location tracking, and syncs status to backend
+  void toggleOnlineAvailability({double? latitude, double? longitude}) {
+    final newStatus = !_helperUser.isOnline;
+    _helperUser = _helperUser.copyWith(
+      isOnline: newStatus,
+      latitude: latitude ?? _helperUser.latitude,
+      longitude: longitude ?? _helperUser.longitude,
+    );
     notifyListeners();
+
+    if (_currentUserModel != null && _currentUserModel!.id.isNotEmpty) {
+      final uid = _currentUserModel!.id;
+      if (newStatus) {
+        LocationTrackerService.startTracking(uid: uid);
+      } else {
+        LocationTrackerService.stopTracking(uid: uid);
+      }
+    }
   }
 
   void updateHelperInfo({
