@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/permission_service.dart';
 import '../theme/app_theme.dart';
+import 'feedback_banner.dart';
 
 /// Represents selected file metadata containing file name, local disk path, and byte content.
 class PickedFileData {
@@ -85,6 +87,15 @@ Future<PickedFileData?> showDocumentPicker(BuildContext context) async {
             leading: const Icon(Icons.picture_as_pdf_outlined, color: CareDropTheme.royalBlue),
             title: const Text('Choose Document (PDF / File)'),
             onTap: () async {
+              final hasPermission = await PermissionService.requestStoragePermission();
+              if (!hasPermission && ctx.mounted) {
+                FeedbackBanner.show(
+                  ctx,
+                  message: 'Storage permission is required to select files.',
+                  type: FeedbackType.warning,
+                );
+                return;
+              }
               final result = await pickDocumentFile();
               if (ctx.mounted) Navigator.pop(ctx, result);
             },
@@ -93,6 +104,15 @@ Future<PickedFileData?> showDocumentPicker(BuildContext context) async {
             leading: const Icon(Icons.photo_camera, color: CareDropTheme.royalBlue),
             title: const Text('Take a Photo (Camera)'),
             onTap: () async {
+              final hasPermission = await PermissionService.requestCameraPermission();
+              if (!hasPermission && ctx.mounted) {
+                FeedbackBanner.show(
+                  ctx,
+                  message: 'Camera permission is required to capture photos.',
+                  type: FeedbackType.warning,
+                );
+                return;
+              }
               final result = await pickImageFromSource(ImageSource.camera);
               if (ctx.mounted) Navigator.pop(ctx, result);
             },
@@ -101,6 +121,15 @@ Future<PickedFileData?> showDocumentPicker(BuildContext context) async {
             leading: const Icon(Icons.photo_library, color: CareDropTheme.royalBlue),
             title: const Text('Choose from Gallery'),
             onTap: () async {
+              final hasPermission = await PermissionService.requestStoragePermission();
+              if (!hasPermission && ctx.mounted) {
+                FeedbackBanner.show(
+                  ctx,
+                  message: 'Gallery permission is required to pick photos.',
+                  type: FeedbackType.warning,
+                );
+                return;
+              }
               final result = await pickImageFromSource(ImageSource.gallery);
               if (ctx.mounted) Navigator.pop(ctx, result);
             },

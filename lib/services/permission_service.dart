@@ -3,17 +3,11 @@ import 'package:permission_handler/permission_handler.dart';
 
 /// Handles runtime permission requests for app services including location, camera, phone calls, and storage.
 class PermissionService {
-  /// Prompts user for all required runtime permissions at application startup.
+  /// Prompts user for essential notification permission at application startup.
   static Future<void> requestInitialPermissions() async {
     if (kIsWeb) return;
     try {
-      await [
-        Permission.location,
-        Permission.notification,
-        Permission.camera,
-        Permission.phone,
-        Permission.storage,
-      ].request();
+      await Permission.notification.request();
     } catch (_) {}
   }
 
@@ -45,6 +39,19 @@ class PermissionService {
     try {
       final status = await Permission.phone.request();
       return status.isGranted;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Requests runtime storage / media permission for picking files.
+  static Future<bool> requestStoragePermission() async {
+    if (kIsWeb) return true;
+    try {
+      final status = await Permission.storage.request();
+      if (status.isGranted) return true;
+      final photosStatus = await Permission.photos.request();
+      return photosStatus.isGranted;
     } catch (_) {
       return false;
     }

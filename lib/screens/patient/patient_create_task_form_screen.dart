@@ -6,7 +6,7 @@ import '../../components/location_picker_map.dart';
 import '../../models/task_creation_form_data.dart';
 import '../../services/geoapify_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/app_feedback.dart';
+import '../../components/feedback_banner.dart';
 import 'patient_task_confirm_screen.dart';
 
 
@@ -267,7 +267,7 @@ class _PatientCreateTaskFormScreenState
     }
   }
 
-  /// Validates section details and coordinates using AppFeedback error messages and red highlights on missing required fields.
+  /// Validates section details and coordinates using FeedbackBanner error messages and red highlights on missing required fields.
   void _submitForm() {
     setState(() {
       _hasPickupError = false;
@@ -278,26 +278,26 @@ class _PatientCreateTaskFormScreenState
     final pickupText = _pickupHospitalController.text.trim();
     if (_requiresPickup && (pickupText.isEmpty || _formData.pickupLat == null || _formData.pickupLng == null)) {
       setState(() => _hasPickupError = true);
-      AppFeedback.showError(context, 'Please select or pin the pickup location on the map.');
+      FeedbackBanner.show(context, message: 'Please select or pin the pickup location on the map.', type: FeedbackType.error);
       return;
     }
 
     final dropoffText = _dropoffWardController.text.trim();
     if (_requiresDropoff && (dropoffText.isEmpty || _formData.dropoffLat == null || _formData.dropoffLng == null)) {
       setState(() => _hasDropoffError = true);
-      AppFeedback.showError(context, 'Please select or pin the drop-off location on the map.');
+      FeedbackBanner.show(context, message: 'Please select or pin the drop-off location on the map.', type: FeedbackType.error);
       return;
     }
 
     final itemNameText = _itemNameController.text.trim();
     if (_requiresItemDetails && itemNameText.isEmpty) {
       setState(() => _hasItemDetailsError = true);
-      AppFeedback.showError(context, 'Please specify the item / medicine name.');
+      FeedbackBanner.show(context, message: 'Please specify the item / medicine name.', type: FeedbackType.error);
       return;
     }
 
     if (!(_formKey.currentState?.validate() ?? false)) {
-      AppFeedback.showError(context, 'Please complete all required fields.');
+      FeedbackBanner.show(context, message: 'Please complete all required fields.', type: FeedbackType.error);
       return;
     }
 

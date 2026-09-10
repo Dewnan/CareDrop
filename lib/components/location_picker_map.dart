@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:caredrop/services/geoapify_service.dart';
 import 'package:caredrop/theme/app_theme.dart';
+import 'feedback_banner.dart';
 
 /// Modal bottom sheet or screen for selecting a location on a map or searching via address autocomplete.
 class LocationPickerMap extends StatefulWidget {
@@ -40,6 +41,12 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
     super.initState();
     _selectedLocation = widget.initialLocation ?? _defaultColombo;
     _fetchAddressForLocation(_selectedLocation);
+
+    if (widget.initialLocation == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _moveToCurrentLocation();
+      });
+    }
   }
 
   @override
@@ -103,8 +110,10 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location services are disabled.')),
+          FeedbackBanner.show(
+            context,
+            message: 'Location services are disabled.',
+            type: FeedbackType.warning,
           );
         }
         return;
@@ -115,8 +124,10 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Location permissions are denied.')),
+            FeedbackBanner.show(
+              context,
+              message: 'Location permissions are denied.',
+              type: FeedbackType.warning,
             );
           }
           return;
@@ -125,8 +136,10 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
 
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are permanently denied.')),
+          FeedbackBanner.show(
+            context,
+            message: 'Location permissions are permanently denied.',
+            type: FeedbackType.warning,
           );
         }
         return;

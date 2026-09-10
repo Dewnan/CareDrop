@@ -9,7 +9,7 @@ import '../../providers/app_state.dart';
 import '../../services/task_service.dart';
 import '../../services/supabase_storage_service.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/app_feedback.dart';
+import '../../components/feedback_banner.dart';
 import 'patient_searching_helpers_screen.dart';
 
 /// Screen for reviewing and confirming task details before posting it to Firestore and Supabase Storage.
@@ -276,12 +276,12 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                         data.taskType == 'Document Delivery';
 
                     if (requiresPickup && (data.pickupLat == null || data.pickupLng == null)) {
-                      AppFeedback.showError(context, 'Pickup location coordinates are missing. Please pin location on map.');
+                      FeedbackBanner.show(context, message: 'Pickup location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
                       return;
                     }
 
                     if (requiresDropoff && (data.dropoffLat == null || data.dropoffLng == null)) {
-                      AppFeedback.showError(context, 'Drop-off location coordinates are missing. Please pin location on map.');
+                      FeedbackBanner.show(context, message: 'Drop-off location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
                       return;
                     }
 
@@ -349,9 +349,10 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                       final taskId = await TaskService.createTask(newTask);
 
                       if (!context.mounted) return;
-                      AppFeedback.showSuccess(
+                      FeedbackBanner.show(
                         context,
-                        'Task posted successfully! Searching for nearby available helpers...',
+                        message: 'Task posted successfully! Searching for nearby available helpers...',
+                        type: FeedbackType.success,
                       );
 
                       navigator.push(
@@ -361,9 +362,10 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                       );
                     } catch (e) {
                       if (!context.mounted) return;
-                      AppFeedback.showError(
+                      FeedbackBanner.show(
                         context,
-                        'Failed to post task: $e',
+                        message: 'Failed to post task: $e',
+                        type: FeedbackType.error,
                       );
                     }
                   },
