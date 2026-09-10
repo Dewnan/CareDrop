@@ -15,26 +15,16 @@ enum TaskProgressStep {
 extension TaskProgressStepX on TaskProgressStep {
   bool canTransitionTo(TaskProgressStep nextStep) {
     if (this == nextStep) return true;
+    if (nextStep == TaskProgressStep.cancelled) return this != TaskProgressStep.completed;
     switch (this) {
       case TaskProgressStep.pending:
-        return nextStep == TaskProgressStep.taskAccepted ||
-            nextStep == TaskProgressStep.cancelled;
+        return nextStep == TaskProgressStep.taskAccepted;
       case TaskProgressStep.taskAccepted:
-        return nextStep == TaskProgressStep.enRoute ||
-            nextStep == TaskProgressStep.cancelled;
       case TaskProgressStep.enRoute:
-        return nextStep == TaskProgressStep.arrivedAtLocation ||
-            nextStep == TaskProgressStep.cancelled;
       case TaskProgressStep.arrivedAtLocation:
-        return nextStep == TaskProgressStep.inProgress ||
-            nextStep == TaskProgressStep.cancelled;
       case TaskProgressStep.inProgress:
-        return nextStep == TaskProgressStep.uploadProof ||
-            nextStep == TaskProgressStep.completed ||
-            nextStep == TaskProgressStep.cancelled;
       case TaskProgressStep.uploadProof:
-        return nextStep == TaskProgressStep.completed ||
-            nextStep == TaskProgressStep.cancelled;
+        return nextStep.index > index && nextStep != TaskProgressStep.cancelled;
       case TaskProgressStep.completed:
         return false;
       case TaskProgressStep.cancelled:

@@ -49,6 +49,7 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
         await TaskService.updateTaskProgress(
           taskId: activeTask.id,
           step: TaskProgressStep.completed,
+          helperName: appState.currentUserModel?.fullName ?? appState.helperUser.fullName,
         );
       } catch (_) {}
     }

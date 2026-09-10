@@ -212,6 +212,7 @@ class _HelperMapScreenState extends State<HelperMapScreen> {
       await TaskService.updateTaskProgress(
         taskId: task.id,
         step: TaskProgressStep.inProgress,
+        helperName: appState.currentUserModel?.fullName ?? appState.helperUser.fullName,
       );
       appState.updateTaskProgressStep(TaskProgressStep.inProgress);
 
