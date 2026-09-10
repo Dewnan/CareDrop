@@ -76,6 +76,21 @@ class UserProfileService {
     await _db.collection(_collectionPath).doc(uid).set(updates, SetOptions(merge: true));
   }
 
+  /// Updates or registers the device FCM push token for any authenticated user profile (patient or helper)
+  static Future<void> updateFcmToken({
+    required String uid,
+    required String fcmToken,
+  }) async {
+    if (uid.isEmpty || fcmToken.isEmpty) return;
+    await _db.collection(_collectionPath).doc(uid).set(
+      {
+        'fcmToken': fcmToken,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
   /// Query profiles by role ('patient' or 'helper')
   static Future<List<UserModel>> getUsersByRole(String role) async {
     final snapshot = await _db

@@ -24,9 +24,8 @@ class FcmNotificationService {
         if (kDebugMode) {
           print('[FcmNotificationService] Obtained FCM Token: ${token.substring(0, 12)}...');
         }
-        await UserProfileService.updateOnlineStatus(
+        await UserProfileService.updateFcmToken(
           uid: uid,
-          isOnline: true,
           fcmToken: token,
         );
       }
