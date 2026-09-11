@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:caredrop/services/geoapify_service.dart';
 import 'package:caredrop/theme/app_theme.dart';
 import 'feedback_banner.dart';
+import 'loading_indicator.dart';
 
 /// Modal bottom sheet or screen for selecting a location on a map or searching via address autocomplete.
 class LocationPickerMap extends StatefulWidget {
@@ -352,14 +353,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
               foregroundColor: CareDropTheme.royalBlue,
               elevation: 4,
               child: _isLocating
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: CareDropTheme.royalBlue,
-                      ),
-                    )
+                  ? const AppLoadingIndicator(size: 18, color: CareDropTheme.royalBlue)
                   : const Icon(Icons.my_location),
             ),
           ),
@@ -398,11 +392,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                   _isLoadingAddress
                       ? const Row(
                           children: [
-                            SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
+                            AppLoadingIndicator(size: 14, strokeWidth: 2, color: CareDropTheme.royalBlue),
                             SizedBox(width: 8),
                             Text('Resolving address...'),
                           ],

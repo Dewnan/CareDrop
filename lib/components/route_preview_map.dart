@@ -5,6 +5,7 @@ import 'package:map_launcher/map_launcher.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:caredrop/services/geoapify_service.dart';
 import 'package:caredrop/theme/app_theme.dart';
+import 'loading_indicator.dart';
 
 /// Renders a map preview displaying pickup and dropoff markers along with the driving route polyline.
 class RoutePreviewMap extends StatefulWidget {
@@ -153,11 +154,7 @@ class _RoutePreviewMapState extends State<RoutePreviewMap> {
                       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: 12,
-                            height: 12,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                          AppLoadingIndicator(size: 12, strokeWidth: 2, color: CareDropTheme.royalBlue),
                           SizedBox(width: 6),
                           Text('Routing...', style: TextStyle(fontSize: 11)),
                         ],

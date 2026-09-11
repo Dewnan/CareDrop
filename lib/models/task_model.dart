@@ -109,6 +109,11 @@ class TaskModel {
   final String? serviceDuration;
   final String? preferredGender;
   final String? preferredLanguage;
+  final String? itemName;
+  final String? itemQuantity;
+  final String? itemSpecialInstructions;
+  final String? paymentMethod;
+  final String? contactPreference;
 
   TaskModel({
     required this.id,
@@ -142,6 +147,11 @@ class TaskModel {
     this.serviceDuration,
     this.preferredGender,
     this.preferredLanguage,
+    this.itemName,
+    this.itemQuantity,
+    this.itemSpecialInstructions,
+    this.paymentMethod,
+    this.contactPreference,
   });
 
   /// Creates a copy of the task model with optional field overrides.
@@ -162,6 +172,11 @@ class TaskModel {
     String? serviceDuration,
     String? preferredGender,
     String? preferredLanguage,
+    String? itemName,
+    String? itemQuantity,
+    String? itemSpecialInstructions,
+    String? paymentMethod,
+    String? contactPreference,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -195,6 +210,11 @@ class TaskModel {
       serviceDuration: serviceDuration ?? this.serviceDuration,
       preferredGender: preferredGender ?? this.preferredGender,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
+      itemName: itemName ?? this.itemName,
+      itemQuantity: itemQuantity ?? this.itemQuantity,
+      itemSpecialInstructions: itemSpecialInstructions ?? this.itemSpecialInstructions,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      contactPreference: contactPreference ?? this.contactPreference,
     );
   }
 
@@ -232,6 +252,11 @@ class TaskModel {
       'serviceDuration': serviceDuration,
       'preferredGender': preferredGender,
       'preferredLanguage': preferredLanguage,
+      'itemName': itemName,
+      'itemQuantity': itemQuantity,
+      'itemSpecialInstructions': itemSpecialInstructions,
+      'paymentMethod': paymentMethod,
+      'contactPreference': contactPreference,
     };
   }
 
@@ -278,6 +303,11 @@ class TaskModel {
       serviceDuration: map['serviceDuration'] as String?,
       preferredGender: map['preferredGender'] as String?,
       preferredLanguage: map['preferredLanguage'] as String?,
+      itemName: map['itemName'] as String?,
+      itemQuantity: map['itemQuantity'] as String?,
+      itemSpecialInstructions: map['itemSpecialInstructions'] as String?,
+      paymentMethod: map['paymentMethod'] as String?,
+      contactPreference: map['contactPreference'] as String?,
     );
   }
 }
