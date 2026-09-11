@@ -30,6 +30,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   List<GeoapifySearchResult> _searchResults = [];
   bool _isSearching = false;
   bool _isLoadingAddress = false;
+  bool _isLocating = false;
   String? _resolvedAddress;
   Timer? _debounceTimer;
 
@@ -104,8 +105,9 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
     _mapController.move(location, 16.0);
   }
 
-  /// Move map to current GPS position.
+  /// Moves map viewport to user's current GPS location and updates resolved address.
   Future<void> _moveToCurrentLocation() async {
+    setState(() => _isLocating = true);
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -154,9 +156,15 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
       _fetchAddressForLocation(userLocation);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch current location: $e')),
+        FeedbackBanner.show(
+          context,
+          message: 'Failed to fetch current location: $e',
+          type: FeedbackType.error,
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLocating = false);
       }
     }
   }
@@ -339,11 +347,20 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
             bottom: 200,
             child: FloatingActionButton.small(
               heroTag: 'my_location_btn',
-              onPressed: _moveToCurrentLocation,
+              onPressed: _isLocating ? null : _moveToCurrentLocation,
               backgroundColor: Colors.white,
               foregroundColor: CareDropTheme.royalBlue,
               elevation: 4,
-              child: const Icon(Icons.my_location),
+              child: _isLocating
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: CareDropTheme.royalBlue,
+                      ),
+                    )
+                  : const Icon(Icons.my_location),
             ),
           ),
 

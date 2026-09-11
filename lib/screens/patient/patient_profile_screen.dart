@@ -118,26 +118,7 @@ class PatientProfileScreen extends StatelessWidget {
                         );
                       },
                     ),
-                    _buildMenuItem(Icons.security_outlined, 'Security Settings'),
                     _buildMenuItem(Icons.payment_outlined, 'Payment Methods', isLast: true),
-                  ]),
-
-                  const SizedBox(height: 24),
-
-                  // PREFERENCES SECTION
-                  const Text(
-                    'PREFERENCES',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: CareDropTheme.textSecondary,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMenuCard([
-                    _buildMenuItem(Icons.notifications_outlined, 'Notifications'),
-                    _buildMenuItem(Icons.location_on_outlined, 'Saved Locations', isLast: true),
                   ]),
 
                   const SizedBox(height: 24),

@@ -61,9 +61,9 @@ class _PatientCreateTaskFormScreenState
   // Pre-defined Task Types without icons
   final List<String> _taskTypeOptions = [
     'Medicine Pickup',
-    'Patient Caregiver / Bedside Assistance',
+    'Patient Caregiver',
     'Document Delivery',
-    'Queue/Token Assistance',
+    'Queue Assistance',
     'Other',
   ];
 
@@ -180,7 +180,7 @@ class _PatientCreateTaskFormScreenState
       _formData.taskType == 'Medicine Pickup' ||
       _formData.taskType == 'Document Delivery';
 
-  bool get _isCaregiverTask => _formData.taskType == 'Patient Caregiver / Bedside Assistance';
+  bool get _isCaregiverTask => _formData.taskType == 'Patient Caregiver';
 
   /// Prompts user with shared modal bottom sheet to pick a document or image file.
   Future<void> _showDocumentPickerOptions() async {

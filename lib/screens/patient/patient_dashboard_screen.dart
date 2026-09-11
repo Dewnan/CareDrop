@@ -94,15 +94,6 @@ class _PatientHomeTab extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Row(
-                      children: [
-
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -321,7 +312,7 @@ class _PatientHomeTab extends StatelessWidget {
               : title == 'Delivery'
                   ? 'Document Delivery'
                   : title == 'Escort'
-                      ? 'Queue/Token Assistance'
+                      ? 'Queue Assistance'
                       : 'Pharmacy Purchase';
 
           Navigator.push(
