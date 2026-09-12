@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../components/loading_indicator.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/user_session_service.dart';
@@ -21,6 +22,8 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+
+  bool _isLoading = false;
 
   // Rate limiting state variables to protect against brute force login attempts
   int _failedAttempts = 0;
@@ -331,101 +334,110 @@ class _CommonSignInScreenState extends State<CommonSignInScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
+                    disabledBackgroundColor: CareDropTheme.royalBlue.withValues(alpha: 0.5),
                   ),
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final appState = context.read<CareDropAppState>();
-                    final navigator = Navigator.of(context);
-                    final email = _emailController.text.trim();
-                    final password = _passwordController.text.trim();
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final appState = context.read<CareDropAppState>();
+                          final navigator = Navigator.of(context);
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
 
-                    // Prevent sign in if user is locked out due to rate limit
-                    if (_isRateLimited(messenger)) {
-                      return;
-                    }
+                          // Prevent sign in if user is locked out due to rate limit
+                          if (_isRateLimited(messenger)) {
+                            return;
+                          }
 
-                    if (email.isEmpty || password.isEmpty) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Please fill in Email and Password.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    try {
-                      final creds = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                        email: email,
-                        password: password,
-                      );
-
-                      if (creds.user != null) {
-                        // Reset rate limit counters on successful authentication
-                        _failedAttempts = 0;
-                        _lockoutEndTime = null;
-
-                        final userRole = (email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient';
-
-                        // Check if email is verified
-                        if (!creds.user!.emailVerified) {
-                          if (!mounted) return;
-                          navigator.push(
-                            MaterialPageRoute(
-                              builder: (_) => EmailVerificationScreen(
-                                userRole: userRole,
-                                email: email,
+                          if (email.isEmpty || password.isEmpty) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Please fill in Email and Password.'),
+                                backgroundColor: Colors.red,
                               ),
-                            ),
-                          );
-                          return;
-                        }
+                            );
+                            return;
+                          }
 
-                        final fetchedProfile = await UserSessionService.fetchUserProfile(creds.user!.uid);
-                        if (fetchedProfile != null) {
-                          appState.setUserModel(fetchedProfile);
-                        } else {
-                          final newProfile = UserModel(
-                            id: creds.user!.uid,
-                            email: email,
-                            fullName: creds.user!.displayName ?? (userRole == 'helper' ? 'Helper User' : 'Patient User'),
-                            role: userRole,
-                            gender: 'Not Specified',
-                            phone: creds.user!.phoneNumber ?? '',
-                          );
-                          appState.setUserModel(newProfile);
-                        }
-                      }
-                    } on FirebaseAuthException catch (e) {
-                      debugPrint('Error: ${e.message}');
-                      // Record failed attempt for rate limiting
-                      _recordFailedAttempt(messenger, e.message ?? 'Authentication failed');
-                      return;
-                    } catch (e) {
-                      debugPrint('Error: $e');
-                      // Record failed attempt for rate limiting
-                      _recordFailedAttempt(messenger, 'An unexpected error occurred: $e');
-                      return;
-                    }
+                          setState(() => _isLoading = true);
 
-                    if (!mounted) return;
+                          try {
+                            final creds = await FirebaseAuth.instance.signInWithEmailAndPassword(
+                              email: email,
+                              password: password,
+                            );
 
-                    final userRole = appState.currentUserModel?.role.toLowerCase() ??
-                        ((email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient');
+                            if (creds.user != null) {
+                              // Reset rate limit counters on successful authentication
+                              _failedAttempts = 0;
+                              _lockoutEndTime = null;
 
-                    if (userRole == 'helper') {
-                      navigator.pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const HelperMainMainScreen()),
-                        (route) => false,
-                      );
-                    } else {
-                      navigator.pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
-                        (route) => false,
-                      );
-                    }
-                  },
-                  child: const Text('Sign In'),
+                              final userRole = (email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient';
+
+                              // Check if email is verified
+                              if (!creds.user!.emailVerified) {
+                                if (mounted) setState(() => _isLoading = false);
+                                navigator.push(
+                                  MaterialPageRoute(
+                                    builder: (_) => EmailVerificationScreen(
+                                      userRole: userRole,
+                                      email: email,
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final fetchedProfile = await UserSessionService.fetchUserProfile(creds.user!.uid);
+                              if (fetchedProfile != null) {
+                                appState.setUserModel(fetchedProfile);
+                              } else {
+                                final newProfile = UserModel(
+                                  id: creds.user!.uid,
+                                  email: email,
+                                  fullName: creds.user!.displayName ?? (userRole == 'helper' ? 'Helper User' : 'Patient User'),
+                                  role: userRole,
+                                  gender: 'Not Specified',
+                                  phone: creds.user!.phoneNumber ?? '',
+                                );
+                                appState.setUserModel(newProfile);
+                              }
+                            }
+                          } on FirebaseAuthException catch (e) {
+                            if (mounted) setState(() => _isLoading = false);
+                            debugPrint('Error: ${e.message}');
+                            // Record failed attempt for rate limiting
+                            _recordFailedAttempt(messenger, e.message ?? 'Authentication failed');
+                            return;
+                          } catch (e) {
+                            if (mounted) setState(() => _isLoading = false);
+                            debugPrint('Error: $e');
+                            // Record failed attempt for rate limiting
+                            _recordFailedAttempt(messenger, 'An unexpected error occurred: $e');
+                            return;
+                          }
+
+                          if (!mounted) return;
+
+                          final userRole = appState.currentUserModel?.role.toLowerCase() ??
+                              ((email == MockUsers.helperUser.email || email.contains('helper')) ? 'helper' : 'patient');
+
+                          if (userRole == 'helper') {
+                            navigator.pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const HelperMainMainScreen()),
+                              (route) => false,
+                            );
+                          } else {
+                            navigator.pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const PatientDashboardScreen()),
+                              (route) => false,
+                            );
+                          }
+                        },
+                  child: _isLoading
+                      ? const AppLoadingIndicator(color: Colors.white, size: 24)
+                      : const Text('Sign In'),
                 ),
               ),
 

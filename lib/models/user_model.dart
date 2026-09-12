@@ -8,6 +8,8 @@ class UserModel {
   final String gender;
   final String phone;
   final String icNumber;
+  final double rating;
+  final int reviewCount;
 
   const UserModel({
     required this.id,
@@ -17,6 +19,8 @@ class UserModel {
     required this.gender,
     required this.phone,
     this.icNumber = '',
+    this.rating = 5.0,
+    this.reviewCount = 0,
   });
 
   UserModel copyWith({
@@ -27,6 +31,8 @@ class UserModel {
     String? gender,
     String? phone,
     String? icNumber,
+    double? rating,
+    int? reviewCount,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -36,6 +42,8 @@ class UserModel {
       gender: gender ?? this.gender,
       phone: phone ?? this.phone,
       icNumber: icNumber ?? this.icNumber,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
     );
   }
 
@@ -48,6 +56,8 @@ class UserModel {
       'gender': gender,
       'phone': phone,
       'icNumber': icNumber,
+      'rating': rating,
+      'reviewCount': reviewCount,
     };
   }
 
@@ -60,6 +70,8 @@ class UserModel {
       gender: map['gender'] as String? ?? '',
       phone: map['phone'] as String? ?? map['phoneNumber'] as String? ?? '',
       icNumber: map['icNumber'] as String? ?? '',
+      rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
+      reviewCount: (map['reviewCount'] as num?)?.toInt() ?? 0,
     );
   }
 

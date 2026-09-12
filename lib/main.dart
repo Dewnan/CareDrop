@@ -12,6 +12,7 @@ import 'services/fcm_notification_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/common/landing_screen.dart';
 import 'screens/patient/patient_dashboard_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'screens/helper/helper_dashboard_screen.dart';
 
 /// Entry point of the application that initializes Firebase, Supabase, requests initial runtime permissions, and runs the root app widget.
@@ -22,6 +23,7 @@ void main() async {
   );
   await SupabaseStorageService().initialize();
   await PermissionService.requestInitialPermissions();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   FcmNotificationService.initializeForegroundListeners();
   runApp(const CareDropApp());
 }

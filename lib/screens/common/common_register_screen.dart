@@ -6,6 +6,7 @@ import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/user_profile_service.dart';
 import '../../theme/app_theme.dart';
+import '../../components/loading_indicator.dart';
 import 'email_verification_screen.dart';
 
 class CommonRegisterScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
   String _selectedRole = 'Patient / Guardian';
   String _selectedGender = 'Male';
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -337,157 +339,167 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
+                    disabledBackgroundColor: CareDropTheme.royalBlue.withValues(alpha: 0.5),
                   ),
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final appState = context.read<CareDropAppState>();
-                    final navigator = Navigator.of(context);
-                    final email = _emailController.text.trim();
-                    final password = _passwordController.text.trim();
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final appState = context.read<CareDropAppState>();
+                          final navigator = Navigator.of(context);
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
 
-                    if (_fullNameController.text.trim().isEmpty ||
-                        email.isEmpty ||
-                        password.isEmpty) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Please complete required fields.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Password validation requirements
-                    if (password.length < 6 || password.length > 16) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Password must be between 6 and 16 characters long.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (!RegExp(r'[A-Z]').hasMatch(password)) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Password must contain at least one uppercase letter (A-Z).'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (!RegExp(r'[a-z]').hasMatch(password)) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Password must contain at least one lowercase letter (a-z).'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (!RegExp(r'[0-9]').hasMatch(password)) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Password must contain at least one numeric digit (0-9).'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Password must contain at least one special character (e.g. !@#\$%^&*).'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    try {
-                      final userCredential = await FirebaseAuth.instance
-                          .createUserWithEmailAndPassword(
-                            email: email,
-                            password: password,
-                          );
-
-                      final user = userCredential.user;
-                      if (user != null) {
-                        final icNumber = _icController.text.trim();
-                        if (icNumber.isNotEmpty) {
-                          final nicQuery = await FirebaseFirestore.instance
-                              .collection('users')
-                              .where('icNumber', isEqualTo: icNumber)
-                              .limit(1)
-                              .get();
-
-                          if (nicQuery.docs.isNotEmpty) {
-                            await user.delete(); // Rollback user creation
+                          if (_fullNameController.text.trim().isEmpty ||
+                              email.isEmpty ||
+                              password.isEmpty) {
                             messenger.showSnackBar(
                               const SnackBar(
-                                content: Text('An account with this NIC number already exists.'),
+                                content: Text('Please complete required fields.'),
                                 backgroundColor: Colors.red,
                               ),
                             );
                             return;
                           }
-                        }
-                        // Send verification email
-                        await user.sendEmailVerification();
 
-                        final roleStr = _selectedRole == 'Helper' ? 'helper' : 'patient';
-                        final newUserModel = UserModel(
-                          id: user.uid,
-                          email: email,
-                          fullName: _fullNameController.text.trim(),
-                          role: roleStr,
-                          gender: _selectedGender,
-                          phone: _phoneController.text.trim(),
-                          icNumber: _icController.text.trim(),
-                        );
+                          // Password validation requirements
+                          if (password.length < 6 || password.length > 16) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Password must be between 6 and 16 characters long.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
 
-                        await UserProfileService.createUserProfile(newUserModel);
-                        appState.setUserModel(newUserModel);
+                          if (!RegExp(r'[A-Z]').hasMatch(password)) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Password must contain at least one uppercase letter (A-Z).'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
 
-                        if (!mounted) return;
+                          if (!RegExp(r'[a-z]').hasMatch(password)) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Password must contain at least one lowercase letter (a-z).'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
 
-                        // Navigate to Email Verification screen
-                        navigator.pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => EmailVerificationScreen(
-                              userRole: roleStr,
-                              email: email,
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                    } on FirebaseAuthException catch (e) {
-                      debugPrint('Error: ${e.code} - ${e.message}');
-                      final errorMsg = e.code == 'email-already-in-use'
-                          ? 'This email address is already registered.'
-                          : (e.message ?? 'Registration failed');
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(errorMsg),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    } catch (e) {
-                      debugPrint('Error: $e');
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('An unexpected error occurred: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Register Account'),
+                          if (!RegExp(r'[0-9]').hasMatch(password)) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Password must contain at least one numeric digit (0-9).'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Password must contain at least one special character (e.g. !@#\$%^&*).'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          setState(() => _isLoading = true);
+
+                          try {
+                            final userCredential = await FirebaseAuth.instance
+                                .createUserWithEmailAndPassword(
+                                  email: email,
+                                  password: password,
+                                );
+
+                            final user = userCredential.user;
+                            if (user != null) {
+                              final icNumber = _icController.text.trim();
+                              if (icNumber.isNotEmpty) {
+                                final nicQuery = await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .where('icNumber', isEqualTo: icNumber)
+                                    .limit(1)
+                                    .get();
+
+                                if (nicQuery.docs.isNotEmpty) {
+                                  await user.delete(); // Rollback user creation
+                                  if (mounted) setState(() => _isLoading = false);
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('An account with this NIC number already exists.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+                              // Send verification email
+                              await user.sendEmailVerification();
+
+                              final roleStr = _selectedRole == 'Helper' ? 'helper' : 'patient';
+                              final newUserModel = UserModel(
+                                id: user.uid,
+                                email: email,
+                                fullName: _fullNameController.text.trim(),
+                                role: roleStr,
+                                gender: _selectedGender,
+                                phone: _phoneController.text.trim(),
+                                icNumber: _icController.text.trim(),
+                              );
+
+                              await UserProfileService.createUserProfile(newUserModel);
+                              appState.setUserModel(newUserModel);
+
+                              if (!mounted) return;
+
+                              // Navigate to Email Verification screen
+                              navigator.pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => EmailVerificationScreen(
+                                    userRole: roleStr,
+                                    email: email,
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                          } on FirebaseAuthException catch (e) {
+                            if (mounted) setState(() => _isLoading = false);
+                            debugPrint('Error: ${e.code} - ${e.message}');
+                            final errorMsg = e.code == 'email-already-in-use'
+                                ? 'This email address is already registered.'
+                                : (e.message ?? 'Registration failed');
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(errorMsg),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } catch (e) {
+                            if (mounted) setState(() => _isLoading = false);
+                            debugPrint('Error: $e');
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('An unexpected error occurred: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                  child: _isLoading
+                      ? const AppLoadingIndicator(color: Colors.white, size: 24)
+                      : const Text('Register Account'),
                 ),
               ),
 

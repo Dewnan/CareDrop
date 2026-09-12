@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../services/user_profile_service.dart';
 import '../../theme/app_theme.dart';
+import '../../components/loading_indicator.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -230,10 +231,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
+                    disabledBackgroundColor: CareDropTheme.royalBlue.withValues(alpha: 0.5),
                   ),
                   onPressed: _isLoading ? null : _saveProfile,
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const AppLoadingIndicator(size: 20, color: Colors.white)
                       : const Text('Save Changes'),
                 ),
               ),
