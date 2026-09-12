@@ -2,7 +2,13 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../models/notification_model.dart';
+import '../models/payment_model.dart';
+import '../models/task_assignment_model.dart';
 import '../models/task_model.dart';
+import 'notification_service.dart';
+import 'payment_service.dart';
+import 'task_assignment_service.dart';
 
 class TaskService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -18,6 +24,25 @@ class TaskService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await docRef.set(taskData);
+
+    // Create entry in separate 'payments' collection
+    await PaymentService.createPaymentRecord(
+      taskId: docRef.id,
+      patientId: task.patientId,
+      amount: task.price,
+      paymentMethod: task.paymentMethod ?? 'Cash',
+    );
+
+    // Persist notification for patient user directly
+    if (task.patientId.isNotEmpty) {
+      await NotificationService.sendNotification(
+        userId: task.patientId,
+        title: 'Task Created: ${task.title}',
+        message: 'Your care task has been created and broadcast to nearby helpers.',
+        type: NotificationType.taskUpdate,
+        relatedTaskId: docRef.id,
+      );
+    }
 
     // Trigger Supabase Edge Function for zero-cost backend nearby helper matching & push notifications
     _triggerNearbyHelpersEdgeFunction(taskData);
@@ -135,6 +160,38 @@ class TaskService {
     });
 
     if (success && patientId != null && patientId!.isNotEmpty) {
+      // Record assignment in separate 'task_assignments' collection
+      await TaskAssignmentService.recordTaskAssignment(
+        taskId: taskId,
+        patientId: patientId!,
+        helperId: helperId,
+        helperName: helperName,
+      );
+
+      // Assign helper payee in 'payments' collection
+      await PaymentService.assignHelperToPayment(
+        taskId: taskId,
+        helperId: helperId,
+      );
+
+      // Save notification to patient
+      await NotificationService.sendNotification(
+        userId: patientId!,
+        title: 'Helper Matched!',
+        message: '${helperName ?? "A verified helper"} accepted your task "${title ?? "Care Task"}".',
+        type: NotificationType.helperMatch,
+        relatedTaskId: taskId,
+      );
+
+      // Save notification to helper
+      await NotificationService.sendNotification(
+        userId: helperId,
+        title: 'Task Accepted',
+        message: 'You accepted "${title ?? "Care Task"}". Tap to view details.',
+        type: NotificationType.taskUpdate,
+        relatedTaskId: taskId,
+      );
+
       _triggerPatientStatusEdgeFunction(
         taskId: taskId,
         patientId: patientId!,
@@ -157,6 +214,7 @@ class TaskService {
     final taskRef = _db.collection(_collectionPath).doc(taskId);
 
     String? patientId;
+    String? assignedHelperId;
     String? title;
     String? category;
 
@@ -167,6 +225,7 @@ class TaskService {
       final data = snapshot.data()!;
       final currentStepStr = data['progressStep'] as String? ?? TaskProgressStep.pending.name;
       patientId = data['patientId'] as String?;
+      assignedHelperId = data['assignedHelperId'] as String?;
       title = data['title'] as String?;
       category = data['category'] as String? ?? 'all';
 
@@ -185,15 +244,42 @@ class TaskService {
       return false;
     });
 
-    if (success && patientId != null && patientId!.isNotEmpty) {
-      _triggerPatientStatusEdgeFunction(
-        taskId: taskId,
-        patientId: patientId!,
-        step: step.name,
-        title: title ?? 'Task',
-        category: category ?? 'all',
-        helperName: helperName,
-      );
+    if (success) {
+      if (step == TaskProgressStep.completed) {
+        await PaymentService.updatePaymentStatus(taskId: taskId, status: PaymentStatus.released);
+        await TaskAssignmentService.updateAssignmentStatus(taskId: taskId, status: AssignmentStatus.completed);
+      }
+
+      final stepDisplayName = step.name.replaceAll(RegExp(r'([A-Z])'), ' \$1').toLowerCase();
+
+      if (patientId != null && patientId!.isNotEmpty) {
+        await NotificationService.sendNotification(
+          userId: patientId!,
+          title: 'Task Status Updated',
+          message: 'Your task "${title ?? "Care Task"}" is now $stepDisplayName.',
+          type: NotificationType.taskUpdate,
+          relatedTaskId: taskId,
+        );
+
+        _triggerPatientStatusEdgeFunction(
+          taskId: taskId,
+          patientId: patientId!,
+          step: step.name,
+          title: title ?? 'Task',
+          category: category ?? 'all',
+          helperName: helperName,
+        );
+      }
+
+      if (assignedHelperId != null && assignedHelperId!.isNotEmpty) {
+        await NotificationService.sendNotification(
+          userId: assignedHelperId!,
+          title: 'Task Progress Updated',
+          message: 'Task "${title ?? "Care Task"}" updated to $stepDisplayName.',
+          type: NotificationType.taskUpdate,
+          relatedTaskId: taskId,
+        );
+      }
     }
 
     return success;
@@ -214,15 +300,39 @@ class TaskService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
+    await PaymentService.updatePaymentStatus(taskId: taskId, status: PaymentStatus.refunded);
+    await TaskAssignmentService.updateAssignmentStatus(taskId: taskId, status: AssignmentStatus.cancelled);
+
     if (data != null) {
       final patientId = data['patientId'] as String?;
+      final assignedHelperId = data['assignedHelperId'] as String?;
+      final title = data['title'] as String? ?? 'Task';
+
       if (patientId != null && patientId.isNotEmpty) {
+        await NotificationService.sendNotification(
+          userId: patientId,
+          title: 'Task Cancelled',
+          message: 'Your task "$title" has been cancelled.',
+          type: NotificationType.taskUpdate,
+          relatedTaskId: taskId,
+        );
+
         _triggerPatientStatusEdgeFunction(
           taskId: taskId,
           patientId: patientId,
           step: TaskProgressStep.cancelled.name,
-          title: data['title'] as String? ?? 'Task',
+          title: title,
           category: data['category'] as String? ?? 'all',
+        );
+      }
+
+      if (assignedHelperId != null && assignedHelperId.isNotEmpty) {
+        await NotificationService.sendNotification(
+          userId: assignedHelperId,
+          title: 'Task Cancelled',
+          message: 'Task "$title" was cancelled by patient.',
+          type: NotificationType.taskUpdate,
+          relatedTaskId: taskId,
         );
       }
     }
@@ -265,3 +375,5 @@ class TaskService {
     }
   }
 }
+
+
