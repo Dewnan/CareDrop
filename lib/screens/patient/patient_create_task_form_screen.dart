@@ -43,6 +43,7 @@ class _PatientCreateTaskFormScreenState
   late TextEditingController _itemNameController;
   late TextEditingController _itemQuantityController;
   late TextEditingController _itemInstructionsController;
+  late TextEditingController _customDurationController;
 
   // Address autocomplete search state
   List<GeoapifySearchResult> _pickupSearchResults = [];
@@ -54,6 +55,7 @@ class _PatientCreateTaskFormScreenState
   Timer? _dropoffDebounceTimer;
 
   // Validation error highlight flags
+  bool _hasDescriptionError = false;
   bool _hasPickupError = false;
   bool _hasDropoffError = false;
   bool _hasItemDetailsError = false;
@@ -83,6 +85,7 @@ class _PatientCreateTaskFormScreenState
     _itemNameController = TextEditingController(text: _formData.itemName);
     _itemQuantityController = TextEditingController(text: _formData.itemQuantity);
     _itemInstructionsController = TextEditingController(text: _formData.itemSpecialInstructions);
+    _customDurationController = TextEditingController();
   }
 
   @override
@@ -101,6 +104,7 @@ class _PatientCreateTaskFormScreenState
     _itemNameController.dispose();
     _itemQuantityController.dispose();
     _itemInstructionsController.dispose();
+    _customDurationController.dispose();
     super.dispose();
   }
 
@@ -181,6 +185,8 @@ class _PatientCreateTaskFormScreenState
       _formData.taskType == 'Document Delivery';
 
   bool get _isCaregiverTask => _formData.taskType == 'Patient Caregiver';
+
+  bool get _isOtherTask => _formData.taskType == 'Other';
 
   /// Prompts user with shared modal bottom sheet to pick a document or image file.
   Future<void> _showDocumentPickerOptions() async {
@@ -270,10 +276,18 @@ class _PatientCreateTaskFormScreenState
   /// Validates section details and coordinates using FeedbackBanner error messages and red highlights on missing required fields.
   void _submitForm() {
     setState(() {
+      _hasDescriptionError = false;
       _hasPickupError = false;
       _hasDropoffError = false;
       _hasItemDetailsError = false;
     });
+
+    final descriptionText = _descriptionController.text.trim();
+    if (!_isOtherTask && descriptionText.isEmpty) {
+      setState(() => _hasDescriptionError = true);
+      FeedbackBanner.show(context, message: 'Please enter task description.', type: FeedbackType.error);
+      return;
+    }
 
     final pickupText = _pickupHospitalController.text.trim();
     if (_requiresPickup && (pickupText.isEmpty || _formData.pickupLat == null || _formData.pickupLng == null)) {
@@ -403,11 +417,15 @@ class _PatientCreateTaskFormScreenState
               const SizedBox(height: 8),
               _buildCard([
                 _buildTextField(
-                  label: 'Task Description *',
+                  label: _isOtherTask ? 'Task Description (Optional)' : 'Task Description *',
                   controller: _descriptionController,
-                  required: true,
+                  required: !_isOtherTask,
+                  hasError: _hasDescriptionError,
                   maxLines: 3,
                   hintText: 'Explain what the helper needs to do...',
+                  onChanged: (val) {
+                    if (_hasDescriptionError) setState(() => _hasDescriptionError = false);
+                  },
                 ),
                 const SizedBox(height: 12),
                 _buildTextField(
@@ -436,6 +454,7 @@ class _PatientCreateTaskFormScreenState
                               label: _requiresPickup ? 'Hospital / Location Name *' : 'Hospital / Location Name (Optional)',
                               controller: _pickupHospitalController,
                               required: _requiresPickup,
+                              hasError: _hasPickupError,
                               hintText: 'Type address or search location...',
                               onChanged: (val) => _onLocationSearchChanged(val, isPickup: true),
                             ),
@@ -532,7 +551,6 @@ class _PatientCreateTaskFormScreenState
                     ],
                   ),
                 ],
-                borderColor: _hasPickupError ? Colors.red.shade400 : null,
               ),
 
               // 4. DROP-OFF LOCATION (CONDITIONALLY SHOWN)
@@ -553,6 +571,7 @@ class _PatientCreateTaskFormScreenState
                                 label: _requiresDropoff ? 'Drop-off Ward / Address *' : 'Drop-off Ward / Address (Optional)',
                                 controller: _dropoffWardController,
                                 required: _requiresDropoff,
+                                hasError: _hasDropoffError,
                                 hintText: 'Type address or search location...',
                                 onChanged: (val) => _onLocationSearchChanged(val, isPickup: false),
                               ),
@@ -629,7 +648,6 @@ class _PatientCreateTaskFormScreenState
                       hintText: 'e.g. Room 204',
                     ),
                   ],
-                  borderColor: _hasDropoffError ? Colors.red.shade400 : null,
                 ),
               ],
 
@@ -644,6 +662,7 @@ class _PatientCreateTaskFormScreenState
                       label: 'Item / Medicine Name *',
                       controller: _itemNameController,
                       required: _requiresItemDetails,
+                      hasError: _hasItemDetailsError,
                       hintText: 'e.g. Paracetamol 500mg',
                       onChanged: (val) {
                         if (_hasItemDetailsError) setState(() => _hasItemDetailsError = false);
@@ -749,8 +768,9 @@ class _PatientCreateTaskFormScreenState
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: ['2 Hours', '4 Hours', '8 Hours', '12 Hours'].map((dur) {
-                      final isSel = _formData.serviceDuration == dur;
+                    children: ['2 Hours', '4 Hours', '8 Hours', '12 Hours', 'Custom'].map((dur) {
+                      final isPreset = ['2 Hours', '4 Hours', '8 Hours', '12 Hours'].contains(_formData.serviceDuration);
+                      final isSel = dur == 'Custom' ? !isPreset : _formData.serviceDuration == dur;
                       return ChoiceChip(
                         showCheckmark: false,
                         label: Text(dur),
@@ -764,13 +784,32 @@ class _PatientCreateTaskFormScreenState
                         onSelected: (val) {
                           if (val) {
                             setState(() {
-                              _formData.serviceDuration = dur;
+                              if (dur == 'Custom') {
+                                _formData.serviceDuration = _customDurationController.text.trim().isNotEmpty
+                                    ? _customDurationController.text.trim()
+                                    : 'Custom';
+                              } else {
+                                _formData.serviceDuration = dur;
+                              }
                             });
                           }
                         },
                       );
                     }).toList(),
                   ),
+                  if (!['2 Hours', '4 Hours', '8 Hours', '12 Hours'].contains(_formData.serviceDuration)) ...[
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      label: 'Specify Duration',
+                      controller: _customDurationController,
+                      hintText: 'e.g. 6 Hours, 2 Days, 24 Hours',
+                      onChanged: (val) {
+                        setState(() {
+                          _formData.serviceDuration = val.trim().isNotEmpty ? val.trim() : 'Custom';
+                        });
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   const Text(
                     'Preferred Helper Gender',
@@ -1059,6 +1098,7 @@ class _PatientCreateTaskFormScreenState
     required String label,
     required TextEditingController controller,
     bool required = false,
+    bool hasError = false,
     int maxLines = 1,
     String? hintText,
     TextInputType keyboardType = TextInputType.text,
@@ -1069,10 +1109,10 @@ class _PatientCreateTaskFormScreenState
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: CareDropTheme.textSecondary,
+            color: hasError ? Colors.red : CareDropTheme.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -1087,6 +1127,18 @@ class _PatientCreateTaskFormScreenState
           decoration: InputDecoration(
             hintText: hintText,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            enabledBorder: hasError
+                ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  )
+                : null,
+            focusedBorder: hasError
+                ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.red, width: 2),
+                  )
+                : null,
           ),
         ),
       ],

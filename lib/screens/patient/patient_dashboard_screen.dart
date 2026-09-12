@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../components/feedback_banner.dart';
+import '../../components/loading_indicator.dart';
+import '../../components/notification_tile.dart';
+import '../../components/task_card_tile.dart';
+import '../../models/notification_model.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
+import '../../services/notification_service.dart';
 import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
 import 'patient_create_task_form_screen.dart';
+import 'patient_matched_helper_screen.dart';
+import 'patient_searching_helpers_screen.dart';
 import 'patient_task_history_screen.dart';
 import 'patient_profile_screen.dart';
 
@@ -100,36 +108,62 @@ class _PatientHomeTab extends StatelessWidget {
 
                 // Active Task Card inside header
                 if (activeTask != null)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Active Task',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          activeTask.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  InkWell(
+                    onTap: () {
+                      if (activeTask.assignedHelperId != null || activeTask.progressStep != TaskProgressStep.pending) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PatientMatchedHelperScreen(taskId: activeTask.id),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${activeTask.hospital} · ${activeTask.deadline}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ],
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PatientSearchingHelpersScreen(taskId: activeTask.id),
+                          ),
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: const [
+                              Text(
+                                'Active Task',
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white70),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            activeTask.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${activeTask.hospital} · ${activeTask.deadline}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -260,33 +294,28 @@ class _PatientHomeTab extends StatelessWidget {
 
                           return Column(
                             children: patientTasks.map((t) {
-                              final isDone = t.progressStep == TaskProgressStep.completed;
-                              final isCancelled = t.progressStep == TaskProgressStep.cancelled;
-
-                              String statusLabel = 'Active';
-                              Color bg = const Color(0xFFFEF3C7);
-                              Color textCol = const Color(0xFFD97706);
-
-                              if (isDone) {
-                                statusLabel = 'Done';
-                                bg = const Color(0xFFDCFCE7);
-                                textCol = const Color(0xFF16A34A);
-                              } else if (isCancelled) {
-                                statusLabel = 'Cancelled';
-                                bg = const Color(0xFFFEE2E2);
-                                textCol = const Color(0xFFDC2626);
-                              } else if (t.progressStep == TaskProgressStep.pending) {
-                                statusLabel = 'Pending';
-                              }
-
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
-                                child: _buildRecentTaskItem(
-                                  t.title,
-                                  '${t.hospital} · ${t.deadline}',
-                                  statusLabel,
-                                  bg,
-                                  textCol,
+                                child: TaskCardTile(
+                                  task: t,
+                                  showDistance: false,
+                                  onTap: () {
+                                    if (t.assignedHelperId != null || t.progressStep != TaskProgressStep.pending) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PatientMatchedHelperScreen(taskId: t.id),
+                                        ),
+                                      );
+                                    } else {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PatientSearchingHelpersScreen(taskId: t.id),
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
                               );
                             }).toList(),
@@ -338,7 +367,6 @@ class _PatientHomeTab extends StatelessWidget {
                 decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
                 child: Icon(icon, color: iconColor, size: 20),
               ),
-              const SizedBox(height: 8),
               Text(
                 title,
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: CareDropTheme.textPrimary),
@@ -349,76 +377,145 @@ class _PatientHomeTab extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildRecentTaskItem(String title, String subtitle, String status, Color tagBg, Color tagTextColor) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: CareDropTheme.cardBorderColor),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.inventory_2_outlined, color: CareDropTheme.tealPrimary, size: 20),
+/// Renders the patient alerts/notifications tab with persistent past notifications, local caching,
+/// NotificationTile widgets, swipe-to-dismiss, and a Clear All option.
+class _PatientAlertsTab extends StatefulWidget {
+  const _PatientAlertsTab();
+
+  @override
+  State<_PatientAlertsTab> createState() => _PatientAlertsTabState();
+}
+
+class _PatientAlertsTabState extends State<_PatientAlertsTab> {
+  List<NotificationModel> _cachedNotifications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialCache();
+  }
+
+  /// Loads cached notifications from SharedPreferences before Firestore stream emits.
+  Future<void> _loadInitialCache() async {
+    final userId = context.read<CareDropAppState>().currentUserModel?.id ?? '';
+    if (userId.isNotEmpty) {
+      final cached = await NotificationService.getCachedNotifications(userId);
+      if (mounted && cached.isNotEmpty) {
+        setState(() {
+          _cachedNotifications = cached;
+        });
+      }
+    }
+  }
+
+  /// Displays confirmation dialog before clearing all notifications.
+  void _confirmClearAll(BuildContext context, String userId) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Clear All Notifications?'),
+        content: const Text('This will remove all notification records permanently.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: CareDropTheme.textPrimary)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(color: CareDropTheme.textMuted, fontSize: 12)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: tagBg, borderRadius: BorderRadius.circular(6)),
-            child: Text(
-              status,
-              style: TextStyle(color: tagTextColor, fontWeight: FontWeight.bold, fontSize: 11),
-            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              await NotificationService.clearAllNotifications(userId);
+              if (context.mounted) {
+                FeedbackBanner.show(
+                  context,
+                  message: 'All notifications cleared',
+                  type: FeedbackType.success,
+                );
+              }
+            },
+            child: const Text('Clear All'),
           ),
         ],
       ),
     );
   }
-}
-
-/// Renders the patient alerts/notifications tab with an empty state when no alerts exist.
-class _PatientAlertsTab extends StatelessWidget {
-  const _PatientAlertsTab();
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<CareDropAppState>();
+    final userId = appState.currentUserModel?.id ?? '';
+
     return Scaffold(
+      backgroundColor: CareDropTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Notifications & Alerts'),
         backgroundColor: Colors.white,
         elevation: 0,
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 12),
-            Text(
-              'No notifications or alerts yet.',
-              style: TextStyle(color: CareDropTheme.textMuted, fontSize: 16),
+        actions: [
+          if (userId.isNotEmpty)
+            TextButton(
+              onPressed: () => _confirmClearAll(context, userId),
+              child: const Text(
+                'Clear All',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
             ),
-          ],
-        ),
+        ],
       ),
+      body: userId.isEmpty
+          ? const Center(
+              child: Text(
+                'Please sign in to view notifications.',
+                style: TextStyle(color: CareDropTheme.textMuted),
+              ),
+            )
+          : StreamBuilder<List<NotificationModel>>(
+              stream: NotificationService.streamNotifications(userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting && _cachedNotifications.isEmpty) {
+                  return const Center(
+                    child: AppLoadingIndicator(color: CareDropTheme.royalBlue, size: 24),
+                  );
+                }
+
+                final notifications = snapshot.data ?? _cachedNotifications;
+
+                if (notifications.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey),
+                        SizedBox(height: 12),
+                        Text(
+                          'No notifications or alerts yet.',
+                          style: TextStyle(color: CareDropTheme.textMuted, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: notifications.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final item = notifications[index];
+                    return NotificationTile(
+                      notification: item,
+                      onDismiss: () => NotificationService.deleteNotification(userId, item.id),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }

@@ -10,10 +10,11 @@ import '../../services/task_service.dart';
 import '../../services/supabase_storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../../components/feedback_banner.dart';
+import '../../components/loading_indicator.dart';
 import 'patient_searching_helpers_screen.dart';
 
 /// Screen for reviewing and confirming task details before posting it to Firestore and Supabase Storage.
-class PatientTaskConfirmScreen extends StatelessWidget {
+class PatientTaskConfirmScreen extends StatefulWidget {
   final TaskCreationFormData? formData;
   final String taskTypeName;
 
@@ -22,6 +23,13 @@ class PatientTaskConfirmScreen extends StatelessWidget {
     this.formData,
     this.taskTypeName = 'Medicine Pickup',
   });
+
+  @override
+  State<PatientTaskConfirmScreen> createState() => _PatientTaskConfirmScreenState();
+}
+
+class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
+  bool _isSubmitting = false;
 
   /// Formats non-empty address components without dangling commas or leading/trailing commas.
   String _formatAddress(List<String?> parts, {String prefix = ''}) {
@@ -49,9 +57,137 @@ class PatientTaskConfirmScreen extends StatelessWidget {
     return 1.5;
   }
 
+  /// Handles task creation request with duplicate submission prevention and storage upload.
+  Future<void> _handlePostTask({
+    required TaskCreationFormData data,
+    required String pickupAddress,
+    required String dropoffAddress,
+    required String scheduleDisplay,
+    required String distanceStr,
+    required double distanceKm,
+    required String requesterName,
+    required double totalFee,
+  }) async {
+    if (_isSubmitting) return;
+
+    final requiresPickup = data.taskType != 'Other';
+    final requiresDropoff = data.taskType == 'Medicine Pickup' ||
+        data.taskType == 'Pharmacy Purchase' ||
+        data.taskType == 'Document Delivery';
+
+    if (requiresPickup && (data.pickupLat == null || data.pickupLng == null)) {
+      FeedbackBanner.show(context, message: 'Pickup location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
+      return;
+    }
+
+    if (requiresDropoff && (data.dropoffLat == null || data.dropoffLng == null)) {
+      FeedbackBanner.show(context, message: 'Drop-off location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final navigator = Navigator.of(context);
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+      String? uploadedDocumentUrl = data.attachmentUrl;
+
+      // Upload attachment file/bytes to Supabase Storage if attached and not yet uploaded
+      if (uploadedDocumentUrl == null && data.attachmentFileName != null) {
+        final storageService = SupabaseStorageService();
+        if (data.localAttachmentPath != null && data.localAttachmentPath!.isNotEmpty) {
+          final file = File(data.localAttachmentPath!);
+          uploadedDocumentUrl = await storageService.uploadDocument(
+            file: file,
+            userId: currentUserId.isNotEmpty ? currentUserId : 'guest',
+            fileName: data.attachmentFileName!,
+          );
+        } else if (data.attachmentBytes != null) {
+          uploadedDocumentUrl = await storageService.uploadDocumentBytes(
+            bytes: data.attachmentBytes,
+            userId: currentUserId.isNotEmpty ? currentUserId : 'guest',
+            fileName: data.attachmentFileName!,
+          );
+        }
+      }
+
+      final category = TaskCategory.values.firstWhere(
+        (e) => e.name.toLowerCase() == data.taskType.toLowerCase().replaceAll(' ', ''),
+        orElse: () => TaskCategory.medicine,
+      );
+
+      final newTask = TaskModel(
+        id: '',
+        patientId: currentUserId,
+        title: data.taskType,
+        hospital: data.pickupHospital,
+        locationDetail: dropoffAddress.isNotEmpty ? dropoffAddress : pickupAddress,
+        pickupAddress: pickupAddress.isNotEmpty ? pickupAddress : null,
+        pickupLat: data.pickupLat,
+        pickupLng: data.pickupLng,
+        dropoffAddress: dropoffAddress.isNotEmpty ? dropoffAddress : null,
+        dropoffLat: data.dropoffLat,
+        dropoffLng: data.dropoffLng,
+        distanceStr: distanceStr,
+        distanceKm: distanceKm,
+        currency: 'LKR',
+        price: totalFee,
+        isUrgent: data.priority == 'Urgent',
+        category: category,
+        deadline: scheduleDisplay,
+        patientInfo: requesterName,
+        description: data.description,
+        startTimeStr: DateTime.now().toString(),
+        progressStep: TaskProgressStep.pending,
+        proofItems: [
+          ProofItem(title: 'Item Photo', isRequired: true),
+          ProofItem(title: 'Receipt / Handover Signature', isRequired: true),
+        ],
+        attachmentUrl: uploadedDocumentUrl,
+        attachmentFileName: data.attachmentFileName,
+        serviceDuration: data.taskType == 'Patient Caregiver' ? data.serviceDuration : null,
+        preferredGender: data.taskType == 'Patient Caregiver' ? data.preferredGender : null,
+        preferredLanguage: data.taskType == 'Patient Caregiver' ? data.preferredLanguage : null,
+        itemName: data.itemName,
+        itemQuantity: data.itemQuantity,
+        itemSpecialInstructions: data.itemSpecialInstructions,
+        paymentMethod: data.paymentMethod,
+        contactPreference: data.contactPreference,
+      );
+
+      final taskId = await TaskService.createTask(newTask);
+
+      if (!mounted) return;
+      FeedbackBanner.show(
+        context,
+        message: 'Task posted successfully! Searching for nearby available helpers...',
+        type: FeedbackType.success,
+      );
+
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => PatientSearchingHelpersScreen(taskId: taskId),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        FeedbackBanner.show(
+          context,
+          message: 'Failed to post task: $e',
+          type: FeedbackType.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final data = formData ?? TaskCreationFormData(taskType: taskTypeName);
+    final data = widget.formData ?? TaskCreationFormData(taskType: widget.taskTypeName);
     final appState = context.watch<CareDropAppState>();
     User? firebaseUser;
     try {
@@ -178,14 +314,32 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                     const Divider(height: 1),
                     const SizedBox(height: 16),
                     _buildDetailRow('Pickup', pickupAddress),
-                    const SizedBox(height: 10),
-                    _buildDetailRow('Drop-off', dropoffAddress),
-                    const SizedBox(height: 10),
-                    _buildDetailRow('Schedule', scheduleDisplay),
+                    if (dropoffAddress.isNotEmpty && dropoffAddress != pickupAddress) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Drop-off', dropoffAddress),
+                    ],
+                    if (!data.isAsap && data.priority != 'Urgent' && data.priority != 'ASAP') ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Schedule', scheduleDisplay),
+                    ],
                     const SizedBox(height: 10),
                     _buildDetailRow('Distance', distanceStr),
-                    const SizedBox(height: 10),
-                    _buildDetailRow('Instructions', data.description.isNotEmpty ? data.description : 'None'),
+                    if (data.description.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Description', data.description),
+                    ],
+                    if (data.itemName != null && data.itemName!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Item / Medicine', data.itemName!),
+                    ],
+                    if (data.itemQuantity != null && data.itemQuantity!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Quantity', data.itemQuantity!),
+                    ],
+                    if (data.itemSpecialInstructions != null && data.itemSpecialInstructions!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _buildDetailRow('Item Notes', data.itemSpecialInstructions!),
+                    ],
                     if (data.taskType == 'Patient Caregiver') ...[
                       const SizedBox(height: 10),
                       _buildDetailRow('Duration', data.serviceDuration),
@@ -194,9 +348,8 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       _buildDetailRow('Language Req.', data.preferredLanguage),
                     ],
-                    if (data.attachmentFileName != null) ...[
-                      const SizedBox(height: 10),
-                      _buildDetailRow('Attachment', data.attachmentFileName!),
+                    if (data.attachmentFileName != null || data.localAttachmentPath != null || data.attachmentBytes != null || data.attachmentUrl != null) ...[
+                      _buildAttachmentPreview(data),
                     ],
                   ],
                 ),
@@ -264,115 +417,36 @@ class PatientTaskConfirmScreen extends StatelessWidget {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
+                    disabledBackgroundColor: CareDropTheme.royalBlue.withValues(alpha: 0.5),
                   ),
-                  onPressed: () async {
-                    final navigator = Navigator.of(context);
-                    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-
-                    final requiresPickup = data.taskType != 'Other';
-
-                    final requiresDropoff = data.taskType == 'Medicine Pickup' ||
-                        data.taskType == 'Pharmacy Purchase' ||
-                        data.taskType == 'Document Delivery';
-
-                    if (requiresPickup && (data.pickupLat == null || data.pickupLng == null)) {
-                      FeedbackBanner.show(context, message: 'Pickup location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
-                      return;
-                    }
-
-                    if (requiresDropoff && (data.dropoffLat == null || data.dropoffLng == null)) {
-                      FeedbackBanner.show(context, message: 'Drop-off location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
-                      return;
-                    }
-
-                    try {
-                      String? uploadedDocumentUrl = data.attachmentUrl;
-
-                      // Upload attachment file/bytes to Supabase Storage if attached and not yet uploaded
-                      if (uploadedDocumentUrl == null && data.attachmentFileName != null) {
-                        final storageService = SupabaseStorageService();
-                        if (data.localAttachmentPath != null && data.localAttachmentPath!.isNotEmpty) {
-                          final file = File(data.localAttachmentPath!);
-                          uploadedDocumentUrl = await storageService.uploadDocument(
-                            file: file,
-                            userId: currentUserId.isNotEmpty ? currentUserId : 'guest',
-                            fileName: data.attachmentFileName!,
-                          );
-                        } else if (data.attachmentBytes != null) {
-                          uploadedDocumentUrl = await storageService.uploadDocumentBytes(
-                            bytes: data.attachmentBytes,
-                            userId: currentUserId.isNotEmpty ? currentUserId : 'guest',
-                            fileName: data.attachmentFileName!,
-                          );
-                        }
-                      }
-
-                      final category = TaskCategory.values.firstWhere(
-                        (e) => e.name.toLowerCase() == data.taskType.toLowerCase().replaceAll(' ', ''),
-                        orElse: () => TaskCategory.medicine,
-                      );
-
-                      final newTask = TaskModel(
-                        id: '',
-                        patientId: currentUserId,
-                        title: data.taskType,
-                        hospital: data.pickupHospital,
-                        locationDetail: dropoffAddress.isNotEmpty ? dropoffAddress : pickupAddress,
-                        pickupAddress: pickupAddress.isNotEmpty ? pickupAddress : null,
-                        pickupLat: data.pickupLat,
-                        pickupLng: data.pickupLng,
-                        dropoffAddress: dropoffAddress.isNotEmpty ? dropoffAddress : null,
-                        dropoffLat: data.dropoffLat,
-                        dropoffLng: data.dropoffLng,
-                        distanceStr: distanceStr,
-                        distanceKm: distanceKm,
-                        currency: 'LKR',
-                        price: totalFee,
-                        isUrgent: data.priority == 'Urgent',
-                        category: category,
-                        deadline: scheduleDisplay,
-                        patientInfo: requesterName,
-                        description: data.description,
-                        startTimeStr: DateTime.now().toString(),
-                        progressStep: TaskProgressStep.pending,
-                        proofItems: [
-                          ProofItem(title: 'Item Photo', isRequired: true),
-                          ProofItem(title: 'Receipt / Handover Signature', isRequired: true),
-                        ],
-                        attachmentUrl: uploadedDocumentUrl,
-                        attachmentFileName: data.attachmentFileName,
-                        serviceDuration: data.taskType == 'Patient Caregiver' ? data.serviceDuration : null,
-                        preferredGender: data.taskType == 'Patient Caregiver' ? data.preferredGender : null,
-                        preferredLanguage: data.taskType == 'Patient Caregiver' ? data.preferredLanguage : null,
-                      );
-
-                      final taskId = await TaskService.createTask(newTask);
-
-                      if (!context.mounted) return;
-                      FeedbackBanner.show(
-                        context,
-                        message: 'Task posted successfully! Searching for nearby available helpers...',
-                        type: FeedbackType.success,
-                      );
-
-                      navigator.push(
-                        MaterialPageRoute(
-                          builder: (_) => PatientSearchingHelpersScreen(taskId: taskId),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => _handlePostTask(
+                            data: data,
+                            pickupAddress: pickupAddress,
+                            dropoffAddress: dropoffAddress,
+                            scheduleDisplay: scheduleDisplay,
+                            distanceStr: distanceStr,
+                            distanceKm: distanceKm,
+                            requesterName: requesterName,
+                            totalFee: totalFee,
+                          ),
+                  child: _isSubmitting
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AppLoadingIndicator(size: 20, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text(
+                              'Posting Task...',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                            ),
+                          ],
+                        )
+                      : const Text(
+                          'Post Task',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                      );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      FeedbackBanner.show(
-                        context,
-                        message: 'Failed to post task: $e',
-                        type: FeedbackType.error,
-                      );
-                    }
-                  },
-                  child: const Text(
-                    'Post Task',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
                 ),
               ),
             ],
@@ -413,6 +487,58 @@ class PatientTaskConfirmScreen extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(color: CareDropTheme.textSecondary, fontSize: 13)),
         Text(price, style: const TextStyle(color: CareDropTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  /// Displays visual preview thumbnail or document file badge for attached task documents.
+  Widget _buildAttachmentPreview(TaskCreationFormData data) {
+    Widget imageWidget;
+    if (data.localAttachmentPath != null && data.localAttachmentPath!.isNotEmpty) {
+      final file = File(data.localAttachmentPath!);
+      if (file.existsSync()) {
+        imageWidget = Image.file(file, height: 140, width: double.infinity, fit: BoxFit.cover);
+      } else {
+        imageWidget = const Icon(Icons.insert_drive_file_outlined, size: 40, color: CareDropTheme.royalBlue);
+      }
+    } else if (data.attachmentBytes != null) {
+      imageWidget = Image.memory(data.attachmentBytes, height: 140, width: double.infinity, fit: BoxFit.cover);
+    } else if (data.attachmentUrl != null && data.attachmentUrl!.isNotEmpty) {
+      imageWidget = Image.network(data.attachmentUrl!, height: 140, width: double.infinity, fit: BoxFit.cover);
+    } else {
+      imageWidget = const Icon(Icons.insert_drive_file_outlined, size: 40, color: CareDropTheme.royalBlue);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        const Text('Attachment', style: TextStyle(color: CareDropTheme.textMuted, fontSize: 12)),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: CareDropTheme.cardBorderColor),
+            color: Colors.grey.shade50,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              imageWidget,
+              if (data.attachmentFileName != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: Text(
+                    data.attachmentFileName!,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: CareDropTheme.textPrimary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }

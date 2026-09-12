@@ -1,9 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../components/feedback_banner.dart';
+import '../../providers/app_state.dart';
+import '../../services/review_service.dart';
 import '../../theme/app_theme.dart';
 import 'patient_dashboard_screen.dart';
 
+/// Screen allowing patients to rate their matched helper after task completion (optional).
 class PatientRatingScreen extends StatefulWidget {
-  const PatientRatingScreen({super.key});
+  final String? taskId;
+  final String? helperName;
+  final String? helperId;
+
+  const PatientRatingScreen({
+    super.key,
+    this.taskId,
+    this.helperName,
+    this.helperId,
+  });
 
   @override
   State<PatientRatingScreen> createState() => _PatientRatingScreenState();
@@ -12,6 +26,7 @@ class PatientRatingScreen extends StatefulWidget {
 class _PatientRatingScreenState extends State<PatientRatingScreen> {
   int _selectedRating = 5;
   final Set<String> _selectedTags = {'Punctual', 'Friendly', 'Careful'};
+  final TextEditingController _commentController = TextEditingController();
 
   final List<String> _tags = [
     'Punctual',
@@ -22,7 +37,52 @@ class _PatientRatingScreenState extends State<PatientRatingScreen> {
   ];
 
   @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  /// Submits review to Firestore or skips rating and navigates back to patient home.
+  Future<void> _finishRating({bool isSkipped = false}) async {
+    if (!isSkipped && widget.helperId != null && widget.helperId!.isNotEmpty) {
+      final user = context.read<CareDropAppState>().currentUserModel;
+      final reviewerId = user?.id ?? '';
+      final reviewerName = user?.fullName ?? 'Patient User';
+
+      await ReviewService.createReview(
+        taskId: widget.taskId ?? '',
+        reviewerId: reviewerId,
+        reviewerName: reviewerName,
+        helperId: widget.helperId!,
+        rating: _selectedRating.toDouble(),
+        tags: _selectedTags.toList(),
+        comment: _commentController.text.trim(),
+      );
+
+      if (mounted) {
+        FeedbackBanner.show(
+          context,
+          message: 'Thank you for rating your helper!',
+          type: FeedbackType.success,
+        );
+      }
+    }
+
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const PatientDashboardScreen(),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final displayName = widget.helperName ?? 'your Helper';
+
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
       appBar: AppBar(
@@ -40,6 +100,15 @@ class _PatientRatingScreenState extends State<PatientRatingScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => _finishRating(isSkipped: true),
+            child: const Text(
+              'Skip',
+              style: TextStyle(color: CareDropTheme.textMuted, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -74,10 +143,11 @@ class _PatientRatingScreenState extends State<PatientRatingScreen> {
 
               const SizedBox(height: 4),
 
-              const Text(
-                'How was Ahmad Razif?',
-                style: TextStyle(
-                  fontSize: 14,
+              Text(
+                'How was $displayName?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
                   color: CareDropTheme.textSecondary,
                 ),
               ),
@@ -116,7 +186,7 @@ class _PatientRatingScreenState extends State<PatientRatingScreen> {
                   return ChoiceChip(
                     label: Text(tag),
                     selected: isSelected,
-                    selectedColor: CareDropTheme.tealPrimary,
+                    selectedColor: CareDropTheme.royalBlue,
                     backgroundColor: Colors.white,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : CareDropTheme.textPrimary,
@@ -125,7 +195,7 @@ class _PatientRatingScreenState extends State<PatientRatingScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(
-                        color: isSelected ? CareDropTheme.tealPrimary : CareDropTheme.cardBorderColor,
+                        color: isSelected ? CareDropTheme.royalBlue : CareDropTheme.cardBorderColor,
                       ),
                     ),
                     onSelected: (selected) {
@@ -149,20 +219,9 @@ class _PatientRatingScreenState extends State<PatientRatingScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: CareDropTheme.tealPrimary,
+                    backgroundColor: CareDropTheme.royalBlue,
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Thank you for rating!')),
-                    );
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PatientDashboardScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
+                  onPressed: () => _finishRating(isSkipped: false),
                   child: const Text(
                     'Submit Review',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
