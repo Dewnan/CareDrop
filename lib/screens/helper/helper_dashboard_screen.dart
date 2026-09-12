@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../components/feedback_banner.dart';
 import '../../components/offline_task_placeholder.dart';
+import '../../components/task_card_tile.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import 'helper_notifications_screen.dart';
 
 import '../../models/task_model.dart';
 import '../../services/task_service.dart';
@@ -132,13 +133,14 @@ class HelperDashboardView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      // Notification button feedback banner trigger
+                      // Notification button trigger
                       GestureDetector(
                         onTap: () {
-                          FeedbackBanner.show(
+                          Navigator.push(
                             context,
-                            message: 'No new notifications at this time',
-                            type: FeedbackType.info,
+                            MaterialPageRoute(
+                              builder: (_) => const HelperNotificationsScreen(),
+                            ),
                           );
                         },
                         child: Container(
@@ -466,8 +468,7 @@ class HelperDashboardView extends StatelessWidget {
                         separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final task = tasks[index];
-                          // Task item tile
-                          return _DashboardTaskTile(
+                          return TaskCardTile(
                             task: task,
                             onTap: () {
                               Navigator.push(
@@ -546,108 +547,6 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-// Individual task list tile item
-class _DashboardTaskTile extends StatelessWidget {
-  final dynamic task;
-  final VoidCallback onTap;
 
-  const _DashboardTaskTile({required this.task, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CareDropTheme.cardBorderColor),
-        ),
-        child: Row(
-          children: [
-            // Task icon
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE6F4F1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.medical_services_outlined,
-                color: CareDropTheme.royalBlue,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Task title and distance
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: CareDropTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${task.distanceStr}',
-                    style: const TextStyle(
-                      color: CareDropTheme.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Task price and urgent badge
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${task.currency} ${task.price.toInt()}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: CareDropTheme.royalBlue,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Task urgency badge tag
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: task.isUrgent
-                        ? CareDropTheme.urgentBg
-                        : CareDropTheme.normalBg,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    task.isUrgent ? 'Urgent' : 'Normal',
-                    style: TextStyle(
-                      color: task.isUrgent
-                          ? CareDropTheme.urgentText
-                          : CareDropTheme.normalText,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 

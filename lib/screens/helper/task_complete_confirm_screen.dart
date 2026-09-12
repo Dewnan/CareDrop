@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import 'helper_dashboard_screen.dart';
-import 'ratings_screen.dart';
 
 class TaskCompleteConfirmScreen extends StatelessWidget {
   const TaskCompleteConfirmScreen({super.key});
@@ -125,27 +124,6 @@ class TaskCompleteConfirmScreen extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RatingsScreen(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'View Ratings & Reviews',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
                   ),
                 ),
               ),

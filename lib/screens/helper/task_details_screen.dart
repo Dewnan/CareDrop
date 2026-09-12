@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../components/feedback_banner.dart';
+import '../../components/loading_indicator.dart';
 import '../../components/route_preview_map.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
@@ -16,7 +17,7 @@ import 'task_status_screen.dart';
 import 'helper_map_screen.dart';
 
 /// Renders task details including clean patient name, location, inline document image preview, and full-screen viewer.
-class TaskDetailsScreen extends StatelessWidget {
+class TaskDetailsScreen extends StatefulWidget {
   final TaskModel task;
 
   const TaskDetailsScreen({
@@ -25,7 +26,26 @@ class TaskDetailsScreen extends StatelessWidget {
   });
 
   @override
+  State<TaskDetailsScreen> createState() => _TaskDetailsScreenState();
+}
+
+class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
+  bool _isAccepting = false;
+
+  /// Opens Google Maps / External Maps app using target GPS coordinates or location address.
+  Future<void> _openExternalMaps(double? lat, double? lng, String fallbackAddress) async {
+    final query = (lat != null && lng != null)
+        ? '$lat,$lng'
+        : Uri.encodeComponent(fallbackAddress);
+    final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+    if (await canLaunchUrl(googleMapsUrl)) {
+      await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final task = widget.task;
     final appState = context.watch<CareDropAppState>();
     final isAccepted = task.assignedHelperId != null || appState.activeTask?.id == task.id;
     final customerPhone = appState.currentUserModel?.phone.isNotEmpty == true
@@ -87,7 +107,7 @@ class TaskDetailsScreen extends StatelessWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: CareDropTheme.normalBg,
             borderRadius: BorderRadius.circular(8),
           ),
           child: IconButton(
@@ -162,6 +182,15 @@ class TaskDetailsScreen extends StatelessWidget {
                     const Divider(color: CareDropTheme.cardBorderColor, height: 1),
                     const SizedBox(height: 16),
 
+                    if (task.paymentMethod != null && task.paymentMethod!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _DetailItem(
+                        label: 'Payment Method',
+                        value: task.paymentMethod!,
+                      ),
+                    ],
+
+                    const SizedBox(height: 12),
                     _DetailItem(
                       label: 'Patient Name',
                       value: displayPatientName,
@@ -171,11 +200,13 @@ class TaskDetailsScreen extends StatelessWidget {
                       label: 'Pickup Location',
                       value: displayPickupLocation,
                     ),
-                    const SizedBox(height: 12),
-                    _DetailItem(
-                      label: 'Dropoff Location',
-                      value: displayDropoffLocation,
-                    ),
+                    if (displayDropoffLocation != displayPickupLocation && displayDropoffLocation.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _DetailItem(
+                        label: 'Dropoff Location',
+                        value: displayDropoffLocation,
+                      ),
+                    ],
 
                     // Route Preview Map for Helpers
                     if (task.pickupLat != null && task.pickupLng != null && task.dropoffLat != null && task.dropoffLng != null) ...[
@@ -230,69 +261,166 @@ class TaskDetailsScreen extends StatelessWidget {
                       ),
                     ],
 
-                    const SizedBox(height: 12),
-                    _DetailItem(
-                      label: 'Deadline',
-                      value: task.deadline,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Patient Instructions & Attached Prescription / Documents Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: CareDropTheme.cardBorderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Instructions & Attachments',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: CareDropTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      task.description.isNotEmpty
-                          ? task.description
-                          : 'No special instructions provided by patient.',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: CareDropTheme.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                    if (task.attachmentUrl != null && task.attachmentUrl!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Divider(color: CareDropTheme.cardBorderColor, height: 1),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Attached Document / Prescription',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: CareDropTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      _DocumentImagePreview(
-                        imageUrl: task.attachmentUrl!,
-                        fileName: task.attachmentFileName ?? 'Prescription / Document',
+                    if (task.deadline.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _DetailItem(
+                        label: 'Deadline',
+                        value: task.deadline,
                       ),
                     ],
                   ],
                 ),
               ),
+
+              // Medicine & Item Pickup Card (Shown ONLY when medicine/item data exists)
+              if ((task.itemName != null && task.itemName!.isNotEmpty) ||
+                  (task.itemQuantity != null && task.itemQuantity!.isNotEmpty) ||
+                  (task.itemSpecialInstructions != null && task.itemSpecialInstructions!.isNotEmpty)) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: CareDropTheme.cardBorderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.medication_outlined, color: CareDropTheme.royalBlue, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Medicine / Item Details',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: CareDropTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (task.itemName != null && task.itemName!.isNotEmpty) ...[
+                        _DetailItem(label: 'Item / Medicine Name', value: task.itemName!),
+                        const SizedBox(height: 10),
+                      ],
+                      if (task.itemQuantity != null && task.itemQuantity!.isNotEmpty) ...[
+                        _DetailItem(label: 'Quantity / Dose', value: task.itemQuantity!),
+                        const SizedBox(height: 10),
+                      ],
+                      if (task.itemSpecialInstructions != null && task.itemSpecialInstructions!.isNotEmpty) ...[
+                        _DetailItem(label: 'Item Special Notes', value: task.itemSpecialInstructions!),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+
+              // Caregiver Preferences Card (Shown ONLY when caregiver preference data exists)
+              if ((task.serviceDuration != null && task.serviceDuration!.isNotEmpty) ||
+                  (task.preferredGender != null && task.preferredGender!.isNotEmpty) ||
+                  (task.preferredLanguage != null && task.preferredLanguage!.isNotEmpty)) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: CareDropTheme.cardBorderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.person_outline, color: CareDropTheme.royalBlue, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Caregiver Service Preferences',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: CareDropTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (task.serviceDuration != null && task.serviceDuration!.isNotEmpty) ...[
+                        _DetailItem(label: 'Service Duration', value: task.serviceDuration!),
+                        const SizedBox(height: 10),
+                      ],
+                      if (task.preferredGender != null && task.preferredGender!.isNotEmpty) ...[
+                        _DetailItem(label: 'Preferred Gender', value: task.preferredGender!),
+                        const SizedBox(height: 10),
+                      ],
+                      if (task.preferredLanguage != null && task.preferredLanguage!.isNotEmpty) ...[
+                        _DetailItem(label: 'Required Language', value: task.preferredLanguage!),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+
+              // Instructions & Attached Document/Prescription Card
+              if (task.description.isNotEmpty || (task.attachmentUrl != null && task.attachmentUrl!.isNotEmpty)) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: CareDropTheme.cardBorderColor),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Instructions & Attachments',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: CareDropTheme.textPrimary,
+                        ),
+                      ),
+                      if (task.description.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          task.description,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: CareDropTheme.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                      if (task.attachmentUrl != null && task.attachmentUrl!.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Divider(color: CareDropTheme.cardBorderColor, height: 1),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Attached Document / Prescription',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: CareDropTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _DocumentImagePreview(
+                          imageUrl: task.attachmentUrl!,
+                          fileName: task.attachmentFileName ?? 'Prescription / Document',
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 24),
 
@@ -304,66 +432,89 @@ class TaskDetailsScreen extends StatelessWidget {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: CareDropTheme.royalBlue,
+                      disabledBackgroundColor: CareDropTheme.royalBlue.withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () async {
-                      final navigator = Navigator.of(context);
-                      final currentUser = FirebaseAuth.instance.currentUser;
-                      final helperId = currentUser?.uid ?? appState.currentUserModel?.id;
+                    onPressed: _isAccepting
+                        ? null
+                        : () async {
+                            final currentUser = FirebaseAuth.instance.currentUser;
+                            final helperId = currentUser?.uid ?? appState.currentUserModel?.id;
 
-                      if (helperId == null || helperId.isEmpty) {
-                        if (!context.mounted) return;
-                        FeedbackBanner.show(
-                          context,
-                          message: 'Please log in as a Helper to accept tasks.',
-                          type: FeedbackType.error,
-                        );
-                        return;
-                      }
+                            if (helperId == null || helperId.isEmpty) {
+                              if (!context.mounted) return;
+                              FeedbackBanner.show(
+                                context,
+                                message: 'Please log in as a Helper to accept tasks.',
+                                type: FeedbackType.error,
+                              );
+                              return;
+                            }
 
-                      final success = await TaskService.acceptTask(
-                        taskId: task.id,
-                        helperId: helperId,
-                      );
+                            setState(() => _isAccepting = true);
 
-                      if (success) {
-                        if (!context.mounted) return;
-                        final acceptedTask = task.copyWith(
-                          progressStep: TaskProgressStep.taskAccepted,
-                          assignedHelperId: helperId,
-                        );
-                        context.read<CareDropAppState>().acceptTask(acceptedTask);
+                            try {
+                              final success = await TaskService.acceptTask(
+                                taskId: task.id,
+                                helperId: helperId,
+                              );
 
-                        // Feedback banner confirmation
-                        FeedbackBanner.show(
-                          context,
-                          message: 'Task Accepted! Opening navigation map...',
-                          type: FeedbackType.success,
-                        );
+                              if (success) {
+                                if (!context.mounted) return;
+                                final acceptedTask = task.copyWith(
+                                  progressStep: TaskProgressStep.taskAccepted,
+                                  assignedHelperId: helperId,
+                                );
+                                context.read<CareDropAppState>().acceptTask(acceptedTask);
 
-                        navigator.pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => HelperMapScreen(task: acceptedTask),
+                                FeedbackBanner.show(
+                                  context,
+                                  message: 'Task Accepted! Review full details or tap Navigate Map.',
+                                  type: FeedbackType.success,
+                                );
+                              } else {
+                                if (!context.mounted) return;
+                                FeedbackBanner.show(
+                                  context,
+                                  message: 'This task has already been accepted by another helper!',
+                                  type: FeedbackType.error,
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                FeedbackBanner.show(
+                                  context,
+                                  message: 'Failed to accept task: $e',
+                                  type: FeedbackType.error,
+                                );
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isAccepting = false);
+                              }
+                            }
+                          },
+                    child: _isAccepting
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AppLoadingIndicator(size: 20, color: Colors.white),
+                              SizedBox(width: 12),
+                              Text(
+                                'Accepting Task...',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            'Accept Task - LKR ${task.price.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        );
-                      } else {
-                        if (!context.mounted) return;
-                        FeedbackBanner.show(
-                          context,
-                          message: 'This task has already been accepted by another helper!',
-                          type: FeedbackType.error,
-                        );
-                      }
-                    },
-                    child: Text(
-                      'Accept Task - LKR ${task.price.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
                   ),
                 ),
               ] else ...[
@@ -421,6 +572,28 @@ class TaskDetailsScreen extends StatelessWidget {
                             );
                           },
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 52,
+                      width: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFEF3C7),
+                          foregroundColor: const Color(0xFFD97706),
+                          padding: EdgeInsets.zero,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => _openExternalMaps(
+                          task.pickupLat,
+                          task.pickupLng,
+                          displayPickupLocation,
+                        ),
+                        child: const Icon(Icons.map_outlined, color: Color(0xFFD97706), size: 22),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -499,11 +672,7 @@ class _AttachmentDirectPreview extends StatelessWidget {
           height: 220,
           color: const Color(0xFFF1F5F9),
           child: const Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2, color: CareDropTheme.royalBlue),
-            ),
+            child: AppLoadingIndicator(size: 24, color: CareDropTheme.royalBlue),
           ),
         ),
         errorWidget: (context, url, error) => _buildPlaceholder(),
@@ -571,11 +740,7 @@ class _AttachmentDirectPreview extends StatelessWidget {
         cacheManager: ImageCacheService.instance,
         fit: BoxFit.contain,
         placeholder: (context, url) => const Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-          ),
+          child: AppLoadingIndicator(size: 28, color: Colors.white),
         ),
         errorWidget: (context, url, error) => _buildPlaceholder(height: null),
       );

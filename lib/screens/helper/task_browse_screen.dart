@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../components/offline_task_placeholder.dart';
+import '../../components/task_card_tile.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/task_service.dart';
@@ -134,7 +135,7 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final task = filteredTasks[index];
-                      return _TaskBrowseTile(
+                      return TaskCardTile(
                         task: task,
                         onTap: () {
                           Navigator.push(
@@ -246,106 +247,4 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _TaskBrowseTile extends StatelessWidget {
-  final TaskModel task;
-  final VoidCallback onTap;
 
-  const _TaskBrowseTile({
-    required this.task,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: CareDropTheme.cardBorderColor),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE6F4F1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.widgets_outlined,
-                color: CareDropTheme.royalBlue,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    task.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: CareDropTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    task.hospital,
-                    style: const TextStyle(
-                      color: CareDropTheme.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined, size: 14, color: CareDropTheme.textMuted),
-                      const SizedBox(width: 2),
-                      Text(
-                        task.distanceStr,
-                        style: const TextStyle(
-                          color: CareDropTheme.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: task.isUrgent ? CareDropTheme.urgentBg : CareDropTheme.normalBg,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          task.isUrgent ? 'Urgent' : 'Normal',
-                          style: TextStyle(
-                            color: task.isUrgent ? CareDropTheme.urgentText : CareDropTheme.normalText,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '${task.currency} ${task.price.toInt()}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: CareDropTheme.royalBlue,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

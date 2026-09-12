@@ -3,22 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:caredrop/providers/app_state.dart';
 import 'package:caredrop/screens/patient/patient_create_task_form_screen.dart';
-import 'package:caredrop/screens/patient/patient_task_type_screen.dart';
 
 void main() {
   group('Patient Task Request Workflow Tests', () {
-    // Tests task category screen renders available task types
-    testWidgets('TC_TASK_001 - Task type screen displays task categories', (WidgetTester tester) async {
+    // Tests task creation form renders with category parameter
+    testWidgets('TC_TASK_001 - Task creation screen renders for task category', (WidgetTester tester) async {
       await tester.pumpWidget(
         ChangeNotifierProvider(
           create: (_) => CareDropAppState(),
           child: const MaterialApp(
-            home: PatientTaskTypeScreen(),
+            home: PatientCreateTaskFormScreen(initialTaskType: 'Elderly Care'),
           ),
         ),
       );
 
-      expect(find.byType(PatientTaskTypeScreen), findsOneWidget);
+      expect(find.byType(PatientCreateTaskFormScreen), findsOneWidget);
     });
 
     // Tests task creation form renders input fields for title, location, fee

@@ -5,6 +5,7 @@ import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/task_service.dart';
 import '../../theme/app_theme.dart';
+import '../../components/loading_indicator.dart';
 import 'task_complete_confirm_screen.dart';
 
 /// Renders trip completion screen allowing helpers to upload a receipt/documentation and add optional trip notes.
@@ -210,20 +211,14 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
+                    disabledBackgroundColor: CareDropTheme.royalBlue.withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   onPressed: _isSubmitting ? null : _handleCompleteTrip,
                   child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
+                      ? const AppLoadingIndicator(size: 20, color: Colors.white)
                       : const Text(
                           'Complete Trip & Finish',
                           style: TextStyle(
