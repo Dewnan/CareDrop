@@ -1,7 +1,13 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../providers/app_state.dart';
 import '../../services/user_profile_service.dart';
+import '../../services/permission_service.dart';
+import '../../services/supabase_storage_service.dart';
+import '../../components/user_avatar_widget.dart';
 import '../../theme/app_theme.dart';
 import '../../components/loading_indicator.dart';
 
@@ -19,6 +25,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late String _selectedGender;
   bool _isLoading = false;
 
+  XFile? _newPickedAvatarFile;
+  Uint8List? _newAvatarBytes;
+
   @override
   void initState() {
     super.initState();
@@ -35,6 +44,108 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController.dispose();
     _icController.dispose();
     super.dispose();
+  }
+
+  /// Prompts user to capture or select a new profile picture and validates that the file format is an image
+  Future<void> _pickAvatarImage(ImageSource source) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final hasPermission = source == ImageSource.camera
+        ? await PermissionService.requestCameraPermission()
+        : await PermissionService.requestStoragePermission();
+
+    if (!hasPermission) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            source == ImageSource.camera
+                ? 'Camera permission is required to take a new profile picture.'
+                : 'Storage / photo permission is required to choose a profile picture.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        if (!SupabaseStorageService.isImageFileName(picked.name)) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Invalid file format. Please select an image file (JPG, PNG, WEBP).'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _newPickedAvatarFile = picked;
+          _newAvatarBytes = bytes;
+        });
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick profile picture: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Displays bottom sheet to choose avatar image source (camera vs photo gallery)
+  void _showAvatarSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Change Profile Picture',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: CareDropTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: CareDropTheme.royalBlue),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAvatarImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: CareDropTheme.royalBlue),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAvatarImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _saveProfile() async {
@@ -59,12 +170,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final current = appState.currentUserModel;
 
       if (current != null) {
+        String updatedAvatarUrl = current.profilePictureUrl;
+
+        if (_newAvatarBytes != null && _newPickedAvatarFile != null) {
+          final storage = SupabaseStorageService();
+          final uploadedUrl = await storage.uploadAvatarBytes(
+            bytes: _newAvatarBytes!,
+            userId: current.id,
+            fileName: _newPickedAvatarFile!.name,
+          );
+          if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+            updatedAvatarUrl = uploadedUrl;
+          }
+        }
+
         await UserProfileService.updateUserProfile(
           uid: current.id,
           fullName: name,
           phone: phone,
           gender: _selectedGender,
           icNumber: ic,
+          profilePictureUrl: updatedAvatarUrl,
         );
 
         final updatedModel = current.copyWith(
@@ -72,6 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           phone: phone,
           gender: _selectedGender,
           icNumber: ic,
+          profilePictureUrl: updatedAvatarUrl,
         );
         appState.setUserModel(updatedModel);
 
@@ -120,6 +247,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // PROFILE AVATAR EDIT SECTION
+              Center(
+                child: Consumer<CareDropAppState>(
+                  builder: (context, appState, child) {
+                    final currentUrl = appState.currentUserModel?.profilePictureUrl;
+                    return Column(
+                      children: [
+                        UserAvatarWidget(
+                          size: 96,
+                          showEditBadge: true,
+                          imageUrl: currentUrl,
+                          localImageBytes: _newAvatarBytes,
+                          localImageFile: kIsWeb || _newPickedAvatarFile == null
+                              ? null
+                              : File(_newPickedAvatarFile!.path),
+                          onTap: _showAvatarSourcePicker,
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: _showAvatarSourcePicker,
+                          child: const Text(
+                            'Change Profile Picture',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: CareDropTheme.royalBlue,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // FULL NAME
               const Text(
                 'FULL NAME',

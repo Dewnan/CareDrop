@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../components/review_card_tile.dart';
+import '../../components/user_avatar_widget.dart';
 import '../../models/review_model.dart';
 import '../../models/user_model.dart';
 import '../../services/review_service.dart';
@@ -81,7 +82,6 @@ class _PatientMatchedHelperScreenState extends State<PatientMatchedHelperScreen>
   /// Displays modal bottom sheet with comprehensive helper info, contact methods, stats, and real patient reviews from Firestore.
   void _showHelperDetailsBottomSheet(BuildContext context) {
     final helperName = _helperModel?.fullName ?? 'Assigned Helper';
-    final initials = helperName.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join();
     final helperId = _helperModel?.id ?? '';
     final ratingStr = (_helperModel?.rating ?? 5.0).toStringAsFixed(1);
 
@@ -116,19 +116,9 @@ class _PatientMatchedHelperScreenState extends State<PatientMatchedHelperScreen>
                 // Helper Header Info
                 Row(
                   children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: CareDropTheme.royalBlue,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Center(
-                        child: Text(
-                          initials.isEmpty ? 'H' : initials,
-                          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                    UserAvatarWidget(
+                      size: 64,
+                      imageUrl: _helperModel?.profilePictureUrl,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -265,7 +255,6 @@ class _PatientMatchedHelperScreenState extends State<PatientMatchedHelperScreen>
   @override
   Widget build(BuildContext context) {
     final helperName = _helperModel?.fullName ?? 'Assigned Helper';
-    final initials = helperName.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join();
 
     return Scaffold(
       backgroundColor: CareDropTheme.backgroundColor,
@@ -329,24 +318,9 @@ class _PatientMatchedHelperScreenState extends State<PatientMatchedHelperScreen>
                         children: [
                           Row(
                             children: [
-                              // Avatar Box
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: CareDropTheme.royalBlue,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    initials.isEmpty ? 'H' : initials,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                              UserAvatarWidget(
+                                size: 60,
+                                imageUrl: _helperModel?.profilePictureUrl,
                               ),
                               const SizedBox(width: 16),
                               Expanded(

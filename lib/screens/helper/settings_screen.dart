@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../common/edit_profile_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -36,6 +37,52 @@ class SettingsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           children: [
+            // Section 0: ACCOUNT & PROFILE
+            const Text(
+              'ACCOUNT & PROFILE',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: CareDropTheme.textMuted,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: CareDropTheme.cardBorderColor),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                leading: const Icon(Icons.person_outline, color: CareDropTheme.royalBlue),
+                title: const Text(
+                  'Edit Profile Details',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: CareDropTheme.textPrimary,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Update profile picture, name, phone, and details',
+                  style: TextStyle(fontSize: 12, color: CareDropTheme.textMuted),
+                ),
+                trailing: const Icon(Icons.chevron_right, size: 20, color: CareDropTheme.textMuted),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EditProfileScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 24),
             // Section 1: NOTIFICATIONS
             const Text(
               'NOTIFICATIONS',

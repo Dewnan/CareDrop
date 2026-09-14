@@ -1,10 +1,16 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/user_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/user_profile_service.dart';
+import '../../services/permission_service.dart';
+import '../../services/supabase_storage_service.dart';
+import '../../components/user_avatar_widget.dart';
 import '../../theme/app_theme.dart';
 import '../../components/loading_indicator.dart';
 import 'email_verification_screen.dart';
@@ -28,6 +34,9 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  XFile? _pickedAvatarFile;
+  Uint8List? _avatarBytes;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +47,108 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
     } else {
       _selectedRole = 'Patient / Guardian';
     }
+  }
+
+  /// Prompts user with camera or gallery selection and checks image file extension before setting state
+  Future<void> _pickAvatarImage(ImageSource source) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final hasPermission = source == ImageSource.camera
+        ? await PermissionService.requestCameraPermission()
+        : await PermissionService.requestStoragePermission();
+
+    if (!hasPermission) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            source == ImageSource.camera
+                ? 'Camera permission is required to capture a profile picture.'
+                : 'Storage / photo permission is required to select a profile picture.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        if (!SupabaseStorageService.isImageFileName(picked.name)) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Invalid file format. Please select an image file (JPG, PNG, WEBP).'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _pickedAvatarFile = picked;
+          _avatarBytes = bytes;
+        });
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick profile picture: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Displays bottom sheet to choose avatar image source (camera vs photo gallery)
+  void _showAvatarSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Select Profile Picture',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: CareDropTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: CareDropTheme.royalBlue),
+                title: const Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAvatarImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: CareDropTheme.royalBlue),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickAvatarImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -91,7 +202,38 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
+
+              // PROFILE PICTURE SELECTOR
+              Center(
+                child: Column(
+                  children: [
+                    UserAvatarWidget(
+                      size: 90,
+                      showEditBadge: true,
+                      localImageBytes: _avatarBytes,
+                      localImageFile: kIsWeb || _pickedAvatarFile == null
+                          ? null
+                          : File(_pickedAvatarFile!.path),
+                      onTap: _showAvatarSourcePicker,
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: _showAvatarSourcePicker,
+                      child: const Text(
+                        'Tap to set profile picture (Optional)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: CareDropTheme.royalBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
 
               // ROLE SELECTION
               const Text(
@@ -447,6 +589,23 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                               // Send verification email
                               await user.sendEmailVerification();
 
+                              String uploadedAvatarUrl = '';
+                              if (_avatarBytes != null && _pickedAvatarFile != null) {
+                                try {
+                                  final storage = SupabaseStorageService();
+                                  final url = await storage.uploadAvatarBytes(
+                                    bytes: _avatarBytes!,
+                                    userId: user.uid,
+                                    fileName: _pickedAvatarFile!.name,
+                                  );
+                                  if (url != null) {
+                                    uploadedAvatarUrl = url;
+                                  }
+                                } catch (uploadErr) {
+                                  debugPrint('Avatar upload error during registration: $uploadErr');
+                                }
+                              }
+
                               final roleStr = _selectedRole == 'Helper' ? 'helper' : 'patient';
                               final newUserModel = UserModel(
                                 id: user.uid,
@@ -456,6 +615,7 @@ class _CommonRegisterScreenState extends State<CommonRegisterScreen> {
                                 gender: _selectedGender,
                                 phone: _phoneController.text.trim(),
                                 icNumber: _icController.text.trim(),
+                                profilePictureUrl: uploadedAvatarUrl,
                               );
 
                               await UserProfileService.createUserProfile(newUserModel);

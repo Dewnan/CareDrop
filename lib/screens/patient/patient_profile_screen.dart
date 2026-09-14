@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../../components/user_avatar_widget.dart';
 import '../common/edit_profile_screen.dart';
 import '../common/landing_screen.dart';
 
@@ -14,7 +15,6 @@ class PatientProfileScreen extends StatelessWidget {
     final appState = context.watch<CareDropAppState>();
     final user = appState.currentUserModel;
     final fullName = user?.fullName ?? 'Patient User';
-    final initials = fullName.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join();
     final role = user?.role ?? 'patient';
     final phone = user?.phone ?? '';
 
@@ -30,23 +30,9 @@ class PatientProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 56, 20, 24),
               child: Row(
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        initials.isEmpty ? 'P' : initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                  UserAvatarWidget(
+                    size: 56,
+                    imageUrl: user?.profilePictureUrl,
                   ),
                   const SizedBox(width: 16),
                   Expanded(

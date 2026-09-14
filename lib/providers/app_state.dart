@@ -84,6 +84,7 @@ class CareDropAppState extends ChangeNotifier {
       icNumber: user.icNumber,
       phoneNumber: user.phone,
       email: user.email,
+      profilePictureUrl: user.profilePictureUrl,
       rating: _helperUser.rating,
       totalTasksCompleted: _helperUser.totalTasksCompleted,
       todayEarnings: _helperUser.todayEarnings,

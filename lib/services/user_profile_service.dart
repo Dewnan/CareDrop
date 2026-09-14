@@ -36,13 +36,14 @@ class UserProfileService {
     });
   }
 
-  /// Update user profile data
+  /// Updates user profile fields including name, phone, gender, IC, and profile picture URL in Firestore
   static Future<void> updateUserProfile({
     required String uid,
     String? fullName,
     String? phone,
     String? gender,
     String? icNumber,
+    String? profilePictureUrl,
   }) async {
     final Map<String, dynamic> updates = {
       'updatedAt': FieldValue.serverTimestamp(),
@@ -52,8 +53,12 @@ class UserProfileService {
     if (phone != null) updates['phone'] = phone;
     if (gender != null) updates['gender'] = gender;
     if (icNumber != null) updates['icNumber'] = icNumber;
+    if (profilePictureUrl != null) {
+      updates['profilePictureUrl'] = profilePictureUrl;
+      updates['avatarUrl'] = profilePictureUrl;
+    }
 
-    await _db.collection(_collectionPath).doc(uid).update(updates);
+    await _db.collection(_collectionPath).doc(uid).set(updates, SetOptions(merge: true));
   }
 
   /// Updates the online availability status, FCM push token, and current GPS coordinates for a helper profile

@@ -8,6 +8,7 @@ class UserModel {
   final String gender;
   final String phone;
   final String icNumber;
+  final String profilePictureUrl;
   final double rating;
   final int reviewCount;
 
@@ -19,10 +20,12 @@ class UserModel {
     required this.gender,
     required this.phone,
     this.icNumber = '',
+    this.profilePictureUrl = '',
     this.rating = 5.0,
     this.reviewCount = 0,
   });
 
+  /// Creates a copy of the current UserModel with updated fields
   UserModel copyWith({
     String? id,
     String? email,
@@ -31,6 +34,7 @@ class UserModel {
     String? gender,
     String? phone,
     String? icNumber,
+    String? profilePictureUrl,
     double? rating,
     int? reviewCount,
   }) {
@@ -42,11 +46,13 @@ class UserModel {
       gender: gender ?? this.gender,
       phone: phone ?? this.phone,
       icNumber: icNumber ?? this.icNumber,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       rating: rating ?? this.rating,
       reviewCount: reviewCount ?? this.reviewCount,
     );
   }
 
+  /// Converts the UserModel into a serializable map
   Map<String, dynamic> toMap() {
     return {
       'uid': id,
@@ -56,11 +62,13 @@ class UserModel {
       'gender': gender,
       'phone': phone,
       'icNumber': icNumber,
+      'profilePictureUrl': profilePictureUrl,
       'rating': rating,
       'reviewCount': reviewCount,
     };
   }
 
+  /// Deserializes a user document map into a UserModel instance
   factory UserModel.fromMap(Map<String, dynamic> map, {String? docId}) {
     return UserModel(
       id: docId ?? map['uid'] as String? ?? '',
@@ -70,13 +78,16 @@ class UserModel {
       gender: map['gender'] as String? ?? '',
       phone: map['phone'] as String? ?? map['phoneNumber'] as String? ?? '',
       icNumber: map['icNumber'] as String? ?? '',
+      profilePictureUrl: map['profilePictureUrl'] as String? ?? map['avatarUrl'] as String? ?? '',
       rating: (map['rating'] as num?)?.toDouble() ?? 5.0,
       reviewCount: (map['reviewCount'] as num?)?.toInt() ?? 0,
     );
   }
 
+  /// Converts the UserModel to a JSON string representation
   String toJson() => jsonEncode(toMap());
 
+  /// Creates a UserModel instance from a JSON string
   factory UserModel.fromJson(String source) =>
       UserModel.fromMap(jsonDecode(source) as Map<String, dynamic>);
 }

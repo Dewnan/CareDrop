@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../../components/user_avatar_widget.dart';
 import '../common/edit_profile_screen.dart';
 import '../common/landing_screen.dart';
 import 'settings_screen.dart';
@@ -28,27 +29,11 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 56, 20, 24),
               child: Row(
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4DB6AC),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        user.fullName
-                            .split(' ')
-                            .take(2)
-                            .map((e) => e[0])
-                            .join(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
+                  UserAvatarWidget(
+                    size: 56,
+                    imageUrl: user.profilePictureUrl.isNotEmpty
+                        ? user.profilePictureUrl
+                        : appState.currentUserModel?.profilePictureUrl,
                   ),
 
                   const SizedBox(width: 16),

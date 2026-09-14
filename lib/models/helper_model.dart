@@ -6,6 +6,7 @@ class HelperModel {
   final String icNumber;
   final String phoneNumber;
   final String email;
+  final String profilePictureUrl;
   final double rating;
   final int totalTasksCompleted;
   final double todayEarnings;
@@ -21,6 +22,7 @@ class HelperModel {
     required this.icNumber,
     required this.phoneNumber,
     required this.email,
+    this.profilePictureUrl = '',
     required this.rating,
     required this.totalTasksCompleted,
     required this.todayEarnings,
@@ -45,6 +47,7 @@ class HelperModel {
     String? icNumber,
     String? phoneNumber,
     String? email,
+    String? profilePictureUrl,
     double? rating,
     int? totalTasksCompleted,
     double? todayEarnings,
@@ -60,6 +63,7 @@ class HelperModel {
       icNumber: icNumber ?? this.icNumber,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       email: email ?? this.email,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       rating: rating ?? this.rating,
       totalTasksCompleted: totalTasksCompleted ?? this.totalTasksCompleted,
       todayEarnings: todayEarnings ?? this.todayEarnings,
@@ -79,6 +83,7 @@ class HelperModel {
       'icNumber': icNumber,
       'phoneNumber': phoneNumber,
       'email': email,
+      'profilePictureUrl': profilePictureUrl,
       'rating': rating,
       'totalTasksCompleted': totalTasksCompleted,
       'todayEarnings': todayEarnings,
@@ -99,6 +104,7 @@ class HelperModel {
       icNumber: map['icNumber'] as String? ?? '',
       phoneNumber: map['phone'] as String? ?? map['phoneNumber'] as String? ?? '',
       email: map['email'] as String? ?? '',
+      profilePictureUrl: map['profilePictureUrl'] as String? ?? map['avatarUrl'] as String? ?? '',
       rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
       totalTasksCompleted: (map['totalTasksCompleted'] as num?)?.toInt() ?? 0,
       todayEarnings: (map['todayEarnings'] as num?)?.toDouble() ?? 0.0,
