@@ -81,7 +81,6 @@ class _PatientMatchedHelperScreenState extends State<PatientMatchedHelperScreen>
   /// Displays modal bottom sheet with comprehensive helper info, contact methods, stats, and real patient reviews from Firestore.
   void _showHelperDetailsBottomSheet(BuildContext context) {
     final helperName = _helperModel?.fullName ?? 'Assigned Helper';
-    final phone = _helperModel?.phone ?? 'Contact Unavailable';
     final initials = helperName.split(' ').take(2).map((e) => e.isNotEmpty ? e[0] : '').join();
     final helperId = _helperModel?.id ?? '';
     final ratingStr = (_helperModel?.rating ?? 5.0).toStringAsFixed(1);
@@ -167,54 +166,9 @@ class _PatientMatchedHelperScreenState extends State<PatientMatchedHelperScreen>
                   ],
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 const Divider(),
-                const SizedBox(height: 16),
-
-                // Contact Buttons Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(color: CareDropTheme.royalBlue),
-                        ),
-                        icon: const Icon(Icons.phone, color: CareDropTheme.royalBlue, size: 18),
-                        onPressed: () async {
-                          if (phone != 'Contact Unavailable') {
-                            final uri = Uri.parse('tel:$phone');
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri);
-                            }
-                          }
-                        },
-                        label: const Text('Call Helper', style: TextStyle(color: CareDropTheme.royalBlue, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: CareDropTheme.royalBlue,
-                        ),
-                        icon: const Icon(Icons.message, color: Colors.white, size: 18),
-                        onPressed: () async {
-                          if (phone != 'Contact Unavailable') {
-                            final uri = Uri.parse('sms:$phone');
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri);
-                            }
-                          }
-                        },
-                        label: const Text('Send SMS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Past Patient Reviews Section Streamed from Firestore
                 const Text(
@@ -591,56 +545,116 @@ class _PatientMatchedHelperScreenState extends State<PatientMatchedHelperScreen>
 
                   const SizedBox(height: 24),
 
-                  // Section 3: Dynamic Action Button
+                  // Section 3: Action Buttons (Call Helper & Open Map)
                   if (progressStep == 'completed' || progressStep == 'uploadProof')
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    Row(
+                      children: [
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            side: const BorderSide(color: CareDropTheme.royalBlue),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () async {
+                            final phone = _helperModel?.phone ?? '';
+                            if (phone.isNotEmpty && phone != 'Contact Unavailable') {
+                              final uri = Uri.parse('tel:$phone');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              }
+                            }
+                          },
+                          child: const Icon(Icons.phone, color: CareDropTheme.royalBlue, size: 20),
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PatientRatingScreen(
-                                taskId: widget.taskId,
-                                helperName: helperName,
-                                helperId: _helperModel?.id,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PatientRatingScreen(
+                                      taskId: widget.taskId,
+                                      helperName: helperName,
+                                      helperId: _helperModel?.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'Complete & Rate Helper',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
                               ),
                             ),
-                          );
-                        },
-                        child: const Text(
-                          'Complete & Rate Helper (Optional)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                          ),
                         ),
-                      ),
+                      ],
                     )
                   else
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: CareDropTheme.royalBlue,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PatientLiveHelperMapScreen(taskId: widget.taskId),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: CareDropTheme.royalBlue),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              icon: const Icon(Icons.phone, color: CareDropTheme.royalBlue, size: 18),
+                              onPressed: () async {
+                                final phone = _helperModel?.phone ?? '';
+                                if (phone.isNotEmpty && phone != 'Contact Unavailable') {
+                                  final uri = Uri.parse('tel:$phone');
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri);
+                                  }
+                                }
+                              },
+                              label: const Text(
+                                'Call Helper',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: CareDropTheme.royalBlue, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
                             ),
-                          );
-                        },
-                        child: const Text(
-                          'Open Map',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: CareDropTheme.royalBlue,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PatientLiveHelperMapScreen(taskId: widget.taskId),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                'Open Map',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                 ],
               ),
