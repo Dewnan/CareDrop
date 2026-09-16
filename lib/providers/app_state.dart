@@ -93,7 +93,6 @@ class CareDropAppState extends ChangeNotifier {
     );
 
     UserSessionService.saveCachedUser(user);
-    FcmNotificationService.registerFcmToken(uid: user.id);
     notifyListeners();
   }
 

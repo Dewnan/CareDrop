@@ -27,7 +27,6 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await SupabaseStorageService().initialize();
-  await PermissionService.requestInitialPermissions();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   FcmNotificationService.initializeForegroundListeners();

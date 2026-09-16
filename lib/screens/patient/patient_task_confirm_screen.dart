@@ -13,6 +13,7 @@ import '../../components/feedback_banner.dart';
 import '../../components/loading_indicator.dart';
 import '../../services/payment_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/fcm_notification_service.dart';
 import '../../models/notification_model.dart';
 import 'patient_searching_helpers_screen.dart';
 
@@ -148,7 +149,8 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
       final isPayHere =
           _selectedPaymentMethod.toLowerCase().contains('payhere') ||
           _selectedPaymentMethod.toLowerCase().contains('card') ||
-          _selectedPaymentMethod.toLowerCase().contains('online');
+          _selectedPaymentMethod.toLowerCase().contains('online') ||
+          _selectedPaymentMethod.toLowerCase().contains('escrow');
 
       if (isPayHere) {
         if (!mounted) return;
@@ -173,7 +175,7 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                   : 'Patient');
 
         try {
-          payherePaymentId = await PaymentService.processPayHerePayment(
+          payherePaymentId = await PaymentService.processSimulatedPayment(
             orderId: tempOrderId,
             amount: totalFee,
             taskTitle: data.taskType,
@@ -187,14 +189,14 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
           await NotificationService.sendNotification(
             userId: currentUserId,
             title: 'Payment Failed',
-            message: 'PayHere payment issue: $cleanErr',
+            message: 'Simulated payment issue: $cleanErr',
             type: NotificationType.payment,
           );
 
           if (mounted) {
             FeedbackBanner.show(
               context,
-              message: 'PayHere Error: $cleanErr',
+              message: 'Payment Error: $cleanErr',
               type: FeedbackType.error,
               duration: const Duration(seconds: 5),
             );
@@ -207,7 +209,7 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
           if (mounted) {
             FeedbackBanner.show(
               context,
-              message: 'PayHere payment was canceled or failed.',
+              message: 'Payment was canceled or failed.',
               type: FeedbackType.warning,
             );
           }
@@ -276,12 +278,15 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
         type: NotificationType.payment,
         relatedTaskId: taskId,
       );
+      
+      // Request Just-In-Time notification permissions so patient gets alerts when helper accepts
+      await FcmNotificationService.registerFcmToken(uid: currentUserId);
 
       if (!mounted) return;
       FeedbackBanner.show(
         context,
         message: isPayHere
-            ? 'PayHere payment held securely in Escrow! Searching for nearby helpers...'
+            ? 'Online Escrow payment held securely! Searching for nearby helpers...'
             : 'Task posted successfully! Searching for nearby available helpers...',
         type: FeedbackType.success,
       );
@@ -310,11 +315,6 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
   Widget build(BuildContext context) {
     final data =
         widget.formData ?? TaskCreationFormData(taskType: widget.taskTypeName);
-    final appState = context.watch<CareDropAppState>();
-    User? firebaseUser;
-    try {
-      firebaseUser = FirebaseAuth.instance.currentUser;
-    } catch (_) {}
 
     final isCashPayment = _selectedPaymentMethod.toLowerCase().contains('cash');
     final baseFee = double.tryParse(data.budget ?? '250') ?? 250.0;
@@ -580,7 +580,7 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Online Payment (PayHere Card / Wallet)',
+                                    'Online Payment (Demo Card)',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 13,
@@ -589,7 +589,7 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    'LKR Cards, EzCash, mCash & NetBanking in Escrow',
+                                    'Instant simulated card authorization held in Escrow',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: CareDropTheme.textSecondary,
@@ -600,7 +600,7 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                             ),
                             Radio<String>(
                               value:
-                                  'Online Payment (PayHere Card / Mobile Wallet)',
+                                  'Online Payment',
                               groupValue: _selectedPaymentMethod,
                               activeColor: CareDropTheme.royalBlue,
                               onChanged: (val) {
