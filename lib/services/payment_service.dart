@@ -1,59 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:payhere_mobilesdk_flutter/payhere_mobilesdk_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/payment_model.dart';
-import 'supabase_storage_service.dart';
 
-/// Service managing CRUD operations, PayHere payment gateway integration, and real-time payment streaming.
+/// Service managing CRUD operations, simulated escrow payment processing, and real-time payment streaming.
 class PaymentService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _collection = 'payments';
 
-  /// Invokes the Supabase Edge Function to generate the secure PayHere MD5 checkout signature hash
-  static Future<Map<String, String>> generatePayHereHash({
-    required String orderId,
-    required double amount,
-    required String currency,
-  }) async {
-    try {
-      if (!SupabaseStorageService().isInitialized) {
-        await SupabaseStorageService().initialize();
-      }
-
-      final response = await Supabase.instance.client.functions.invoke(
-        'generate_payhere_hash',
-        body: {
-          'orderId': orderId,
-          'amount': amount,
-          'currency': currency.toUpperCase(),
-        },
-      );
-
-      if (response.status != 200) {
-        final errorMsg = response.data is Map
-            ? (response.data['error'] ?? 'Edge Function error')
-            : 'Edge Function error';
-        throw Exception(errorMsg);
-      }
-
-      final data = response.data as Map<String, dynamic>;
-      return {
-        'merchantId': data['merchantId'] as String? ?? '',
-        'hash': data['hash'] as String? ?? '',
-        'amount': data['amount'] as String? ?? amount.toStringAsFixed(2),
-        'currency': data['currency'] as String? ?? currency,
-        'orderId': data['orderId'] as String? ?? orderId,
-      };
-    } catch (e) {
-      debugPrint('Error generating PayHere MD5 hash signature: $e');
-      rethrow;
-    }
-  }
-
-  /// Launches the PayHere mobile SDK checkout modal to process card or wallet payments for a task order.
-  static Future<String?> processPayHerePayment({
+  /// Processes an in-app simulated escrow payment checkout for testing card and mobile wallet transactions.
+  static Future<String?> processSimulatedPayment({
     required String orderId,
     required double amount,
     required String taskTitle,
@@ -63,87 +18,12 @@ class PaymentService {
     String currency = 'LKR',
   }) async {
     try {
-      final hashData = await generatePayHereHash(
-        orderId: orderId,
-        amount: amount,
-        currency: currency,
-      );
-
-      final merchantId =
-          hashData['merchantId'] ?? dotenv.env['PAYHERE_MERCHANT_ID'] ?? '';
-      final hash = hashData['hash'] ?? '';
-      final formattedAmount = hashData['amount'] ?? amount.toStringAsFixed(2);
-      final isSandbox =
-          (dotenv.env['PAYHERE_MODE'] ?? 'SANDBOX').toUpperCase() == 'SANDBOX';
-
-      if (merchantId.isEmpty || hash.isEmpty) {
-        throw Exception(
-          'PayHere configuration error: PAYHERE_MERCHANT_ID or signature hash is missing. Verify Supabase secrets.',
-        );
-      }
-
-      final nameParts = customerName.trim().split(' ');
-      final firstName = nameParts.isNotEmpty ? nameParts.first : 'Patient';
-      final lastName = nameParts.length > 1
-          ? nameParts.sublist(1).join(' ')
-          : 'User';
-
-      final paymentObject = {
-        "sandbox": isSandbox,
-        "merchant_id": merchantId,
-        "notify_url":
-            "https://irpeebknikmygzbgntde.supabase.co/functions/v1/payhere_notify",
-        "order_id": orderId,
-        "items": taskTitle.isNotEmpty ? taskTitle : "CareDrop Care Task",
-        "amount": double.tryParse(formattedAmount) ?? amount,
-        "currency": currency.toUpperCase(),
-        "first_name": firstName,
-        "last_name": lastName,
-        "email": customerEmail.isNotEmpty
-            ? customerEmail
-            : "patient@caredrop.lk",
-        "phone": customerPhone.isNotEmpty ? customerPhone : "+94770000000",
-        "address": "Hospital / Residential Care",
-        "city": "Colombo",
-        "country": "Sri Lanka",
-        "hash": hash,
-      };
-
-      String? resultPaymentId;
-      String? errorMessage;
-      bool isCompleted = false;
-
-      PayHere.startPayment(
-        paymentObject,
-        (paymentId) {
-          resultPaymentId = paymentId;
-          isCompleted = true;
-        },
-        (error) {
-          errorMessage = error;
-          isCompleted = true;
-        },
-        () {
-          errorMessage = "Payment modal closed by user.";
-          isCompleted = true;
-        },
-      );
-
-      // Wait for SDK callback completion
-      int elapsed = 0;
-      while (!isCompleted && elapsed < 120) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        elapsed++;
-      }
-
-      if (errorMessage != null) {
-        debugPrint('PayHere payment error: $errorMessage');
-        throw Exception(errorMessage);
-      }
-
-      return resultPaymentId ?? 'PAYHERE_SUCCESS_$orderId';
+      await Future.delayed(const Duration(milliseconds: 800));
+      final simTransactionId = 'SIM_ESCROW_${DateTime.now().millisecondsSinceEpoch}';
+      debugPrint('Simulated escrow payment authorization successful: $simTransactionId');
+      return simTransactionId;
     } catch (e) {
-      debugPrint('Error initiating PayHere payment: $e');
+      debugPrint('Error initiating simulated payment: $e');
       rethrow;
     }
   }

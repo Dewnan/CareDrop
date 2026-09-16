@@ -61,6 +61,19 @@ class UserProfileService {
     await _db.collection(_collectionPath).doc(uid).set(updates, SetOptions(merge: true));
   }
 
+  /// Increments the total completed tasks count and today's earnings for a helper
+  static Future<void> incrementHelperStats({
+    required String uid,
+    required double earnedAmount,
+  }) async {
+    if (uid.isEmpty) return;
+    await _db.collection(_collectionPath).doc(uid).set({
+      'totalTasksCompleted': FieldValue.increment(1),
+      'todayEarnings': FieldValue.increment(earnedAmount),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   /// Updates the online availability status, FCM push token, and current GPS coordinates for a helper profile
   static Future<void> updateOnlineStatus({
     required String uid,

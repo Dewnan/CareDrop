@@ -9,6 +9,7 @@ import '../models/task_model.dart';
 import 'notification_service.dart';
 import 'payment_service.dart';
 import 'task_assignment_service.dart';
+import 'user_profile_service.dart';
 
 class TaskService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -199,7 +200,8 @@ class TaskService {
       // Save payment notification to helper and push FCM
       final isOnlinePay = paymentMethod?.toLowerCase().contains('payhere') == true ||
           paymentMethod?.toLowerCase().contains('online') == true ||
-          paymentMethod?.toLowerCase().contains('card') == true;
+          paymentMethod?.toLowerCase().contains('card') == true ||
+          paymentMethod?.toLowerCase().contains('escrow') == true;
       final payNoticeMsg = isOnlinePay
           ? 'Payment Secured: LKR ${price.toStringAsFixed(2)} is held in Escrow for "${title ?? "Care Task"}".'
           : 'Cash Collection: Please collect LKR ${price.toStringAsFixed(2)} cash from the patient upon delivery.';
@@ -246,6 +248,7 @@ class TaskService {
     String? assignedHelperId;
     String? title;
     String? category;
+    double price = 0.0;
 
     final success = await _db.runTransaction<bool>((transaction) async {
       final snapshot = await transaction.get(taskRef);
@@ -257,6 +260,7 @@ class TaskService {
       assignedHelperId = data['assignedHelperId'] as String?;
       title = data['title'] as String?;
       category = data['category'] as String? ?? 'all';
+      price = (data['price'] as num?)?.toDouble() ?? 0.0;
 
       final currentStep = TaskProgressStep.values.firstWhere(
         (e) => e.name == currentStepStr,
@@ -277,6 +281,11 @@ class TaskService {
       if (step == TaskProgressStep.completed) {
         await PaymentService.updatePaymentStatus(taskId: taskId, status: PaymentStatus.released);
         await TaskAssignmentService.updateAssignmentStatus(taskId: taskId, status: AssignmentStatus.completed);
+        
+        if (assignedHelperId != null && assignedHelperId!.isNotEmpty) {
+          // Increment the helper's global stats (earnings and tasks completed)
+          await UserProfileService.incrementHelperStats(uid: assignedHelperId!, earnedAmount: price);
+        }
       }
 
       final stepDisplayName = step.name.replaceAll(RegExp(r'([A-Z])'), ' \$1').toLowerCase();

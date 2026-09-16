@@ -50,7 +50,8 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow read: if isAuthenticated() && (
         resource.data.patientId == request.auth.uid ||
-        resource.data.helperId == request.auth.uid
+        resource.data.helperId == request.auth.uid ||
+        resource.data.helperId == null
       );
       // Patients create the initial payment record when creating a task
       allow create: if isAuthenticated() &&

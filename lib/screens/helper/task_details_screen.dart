@@ -186,14 +186,16 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                             decoration: BoxDecoration(
                               color: task.paymentMethod!.toLowerCase().contains('payhere') ||
                                       task.paymentMethod!.toLowerCase().contains('online') ||
-                                      task.paymentMethod!.toLowerCase().contains('card')
+                                      task.paymentMethod!.toLowerCase().contains('card') ||
+                                      task.paymentMethod!.toLowerCase().contains('escrow')
                                   ? const Color(0xFFEFF6FF)
                                   : const Color(0xFFF3F4F6),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 color: task.paymentMethod!.toLowerCase().contains('payhere') ||
                                         task.paymentMethod!.toLowerCase().contains('online') ||
-                                        task.paymentMethod!.toLowerCase().contains('card')
+                                        task.paymentMethod!.toLowerCase().contains('card') ||
+                                        task.paymentMethod!.toLowerCase().contains('escrow')
                                     ? CareDropTheme.royalBlue
                                     : CareDropTheme.cardBorderColor,
                               ),
@@ -204,13 +206,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                                 Icon(
                                   task.paymentMethod!.toLowerCase().contains('payhere') ||
                                           task.paymentMethod!.toLowerCase().contains('online') ||
-                                          task.paymentMethod!.toLowerCase().contains('card')
+                                          task.paymentMethod!.toLowerCase().contains('card') ||
+                                          task.paymentMethod!.toLowerCase().contains('escrow')
                                       ? Icons.lock_outline
                                       : Icons.payments_outlined,
                                   size: 14,
                                   color: task.paymentMethod!.toLowerCase().contains('payhere') ||
                                           task.paymentMethod!.toLowerCase().contains('online') ||
-                                          task.paymentMethod!.toLowerCase().contains('card')
+                                          task.paymentMethod!.toLowerCase().contains('card') ||
+                                          task.paymentMethod!.toLowerCase().contains('escrow')
                                       ? CareDropTheme.royalBlue
                                       : CareDropTheme.textSecondary,
                                 ),
@@ -218,15 +222,17 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                                 Text(
                                   task.paymentMethod!.toLowerCase().contains('payhere') ||
                                           task.paymentMethod!.toLowerCase().contains('online') ||
-                                          task.paymentMethod!.toLowerCase().contains('card')
-                                      ? 'PayHere (Secured in Escrow)'
+                                          task.paymentMethod!.toLowerCase().contains('card') ||
+                                          task.paymentMethod!.toLowerCase().contains('escrow')
+                                      ? 'Online Escrow (Secured)'
                                       : 'Cash on Delivery',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: task.paymentMethod!.toLowerCase().contains('payhere') ||
                                             task.paymentMethod!.toLowerCase().contains('online') ||
-                                            task.paymentMethod!.toLowerCase().contains('card')
+                                            task.paymentMethod!.toLowerCase().contains('card') ||
+                                            task.paymentMethod!.toLowerCase().contains('escrow')
                                         ? CareDropTheme.royalBlue
                                         : CareDropTheme.textPrimary,
                                   ),
