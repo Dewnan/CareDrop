@@ -7,7 +7,6 @@ import 'models/user_model.dart';
 import 'providers/app_state.dart';
 import 'services/user_session_service.dart';
 import 'services/supabase_storage_service.dart';
-import 'services/permission_service.dart';
 import 'services/fcm_notification_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/common/landing_screen.dart';
