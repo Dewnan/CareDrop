@@ -15,16 +15,15 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Users collection rules: owner can write, authenticated users can read
+    // Users collection: owner can write, authenticated users can read
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create, update: if isOwner(userId);
       allow delete: if false;
     }
 
-    // Tasks collection rules: RBAC for creation, assignment, updates, and cancellation
+    // Tasks collection: RBAC for creation, assignment, updates, and cancellation
     match /tasks/{taskId} {
-      // Authenticated patients and helpers can read task details
       allow read: if isAuthenticated();
 
       // Only authenticated patients can create tasks under their own patient ID
@@ -45,6 +44,48 @@ service cloud.firestore {
       allow delete: if isAuthenticated() &&
         resource.data.patientId == request.auth.uid &&
         resource.data.progressStep == 'pending';
+    }
+
+    // Payments collection: patient creates on task creation; helper and patient can read their own records
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.helperId == request.auth.uid
+      );
+      // Patients create the initial payment record when creating a task
+      allow create: if isAuthenticated() &&
+        request.resource.data.patientId == request.auth.uid;
+      // Authenticated users can update payment records for their tasks (helper assignment, status release)
+      allow update: if isAuthenticated() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.helperId == request.auth.uid ||
+        resource.data.helperId == null
+      );
+      allow delete: if false;
+    }
+
+    // Task Assignments collection: authenticated users involved in the task can read and write
+    match /task_assignments/{assignmentId} {
+      allow read: if isAuthenticated() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.helperId == request.auth.uid
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.helperId == request.auth.uid
+      );
+      allow delete: if false;
+    }
+
+    // Payouts collection: helpers can create and read their own payout requests
+    match /payouts/{payoutId} {
+      allow read: if isAuthenticated() &&
+        resource.data.helperId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+        request.resource.data.helperId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
