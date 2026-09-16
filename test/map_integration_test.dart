@@ -8,24 +8,19 @@ void main() {
       final task = TaskModel(
         id: 'test_task_1',
         title: 'Medicine Delivery',
-        hospital: 'General Hospital',
-        locationDetail: 'Ward 4B',
         pickupAddress: 'Hospital Pharmacy, Ward 4B',
         pickupLat: 6.9271,
         pickupLng: 79.8612,
         dropoffAddress: '123 Main Street, Colombo 03',
         dropoffLat: 6.9147,
         dropoffLng: 79.8510,
-        distanceStr: '2.5 km',
-        distanceKm: 2.5,
+        roomDetail: 'Ward 4B',
         currency: 'LKR',
         price: 500.0,
         isUrgent: true,
         category: TaskCategory.medicine,
         deadline: 'Today, 5:00 PM',
-        patientInfo: 'John Doe',
         description: 'Pick up prescriptions',
-        startTimeStr: 'ASAP',
         proofItems: [],
       );
 
@@ -37,6 +32,7 @@ void main() {
       expect(map['dropoffAddress'], equals('123 Main Street, Colombo 03'));
       expect(map['dropoffLat'], equals(6.9147));
       expect(map['dropoffLng'], equals(79.8510));
+      expect(map['roomDetail'], equals('Ward 4B'));
 
       final restoredTask = TaskModel.fromMap(map, docId: 'test_task_1');
 
@@ -46,6 +42,7 @@ void main() {
       expect(restoredTask.dropoffAddress, equals(task.dropoffAddress));
       expect(restoredTask.dropoffLat, equals(task.dropoffLat));
       expect(restoredTask.dropoffLng, equals(task.dropoffLng));
+      expect(restoredTask.roomDetail, equals(task.roomDetail));
     });
   });
 

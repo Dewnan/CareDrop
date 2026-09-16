@@ -31,20 +31,15 @@ void main() {
       final task = TaskModel(
         id: 't100',
         title: 'Medicine Delivery',
-        hospital: 'General Hospital',
-        locationDetail: 'Room 302',
         pickupAddress: 'Pharmacy Counter A',
+        roomDetail: 'Room 302',
         dropoffAddress: 'Room 302, Bed 05',
-        distanceStr: '1.2 km',
-        distanceKm: 1.2,
         currency: 'LKR',
         price: 500.0,
         isUrgent: false,
         category: TaskCategory.medicine,
         deadline: 'ASAP',
-        patientInfo: 'Jane Doe',
         description: 'Deliver prescription box',
-        startTimeStr: '10:00 AM',
         proofItems: [],
       );
 
@@ -78,25 +73,20 @@ void main() {
       expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     });
 
-    testWidgets('TC_HELPER_004 - TaskDetailsScreen hides Room & Bed No. when locationDetail equals pickup or dropoff location', (WidgetTester tester) async {
+    testWidgets('TC_HELPER_004 - TaskDetailsScreen hides Room & Bed No. when roomDetail equals pickup or dropoff location', (WidgetTester tester) async {
       final task = TaskModel(
         id: 't101',
         title: 'Medicine Pickup',
-        hospital: 'General Hospital',
-        locationDetail: 'General Hospital Pickup',
         pickupAddress: 'General Hospital Pickup',
+        roomDetail: 'General Hospital Pickup',
         dropoffAddress: 'Patient Home',
         assignedHelperId: 'helper_1',
-        distanceStr: '2.5 km',
-        distanceKm: 2.5,
         currency: 'LKR',
         price: 350.0,
         isUrgent: false,
         category: TaskCategory.medicine,
         deadline: 'ASAP',
-        patientInfo: 'John Doe',
         description: 'Collect pills',
-        startTimeStr: '11:00 AM',
         proofItems: [],
       );
 
@@ -120,20 +110,15 @@ void main() {
       final task = TaskModel(
         id: 't102',
         title: 'Document Filing',
-        hospital: 'National Hospital',
-        locationDetail: 'Building A, Ward 2',
         pickupAddress: 'Main Pharmacy, Block B',
+        roomDetail: 'Building A, Ward 2',
         dropoffAddress: 'Ward 5, Bed 12',
-        distanceStr: '0.8 km',
-        distanceKm: 0.8,
         currency: 'LKR',
         price: 280.0,
         isUrgent: true,
         category: TaskCategory.filing,
         deadline: '2:00 PM',
-        patientInfo: 'Alice Smith',
         description: 'File medical records',
-        startTimeStr: '1:00 PM',
         proofItems: [],
       );
 
@@ -154,21 +139,16 @@ void main() {
       final acceptedTask = TaskModel(
         id: 't103',
         title: 'Medicine Delivery',
-        hospital: 'General Hospital',
-        locationDetail: 'Room 102',
         pickupAddress: 'Hospital Pharmacy',
+        roomDetail: 'Room 102',
         dropoffAddress: 'Patient Residence',
         assignedHelperId: 'helper_77',
-        distanceStr: '1.5 km',
-        distanceKm: 1.5,
         currency: 'LKR',
         price: 450.0,
         isUrgent: false,
         category: TaskCategory.medicine,
         deadline: 'ASAP',
-        patientInfo: 'Jane Doe',
         description: 'Deliver meds',
-        startTimeStr: '10:30 AM',
         proofItems: [],
       );
 
