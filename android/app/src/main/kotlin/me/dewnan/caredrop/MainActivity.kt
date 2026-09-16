@@ -1,4 +1,4 @@
-package com.example.caredrop
+package me.dewnan.caredrop
 
 import io.flutter.embedding.android.FlutterActivity
 

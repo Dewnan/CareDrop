@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.caredrop"
+    namespace = "me.dewnan.caredrop"
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
