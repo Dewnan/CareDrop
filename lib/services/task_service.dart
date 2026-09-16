@@ -135,6 +135,8 @@ class TaskService {
     String? patientId;
     String? title;
     String? category;
+    String? paymentMethod;
+    double price = 0.0;
 
     final success = await _db.runTransaction<bool>((transaction) async {
       final snapshot = await transaction.get(taskRef);
@@ -145,6 +147,8 @@ class TaskService {
       patientId = data['patientId'] as String?;
       title = data['title'] as String?;
       category = data['category'] as String? ?? 'all';
+      paymentMethod = data['paymentMethod'] as String? ?? 'Cash';
+      price = (data['price'] as num?)?.toDouble() ?? 0.0;
 
       // Check if task is still pending and unassigned
       if (currentStep == TaskProgressStep.pending.name && data['assignedHelperId'] == null) {
@@ -183,12 +187,28 @@ class TaskService {
         relatedTaskId: taskId,
       );
 
-      // Save notification to helper
+      // Save task update notification to helper
       await NotificationService.sendNotification(
         userId: helperId,
         title: 'Task Accepted',
         message: 'You accepted "${title ?? "Care Task"}". Tap to view details.',
         type: NotificationType.taskUpdate,
+        relatedTaskId: taskId,
+      );
+
+      // Save payment notification to helper and push FCM
+      final isOnlinePay = paymentMethod?.toLowerCase().contains('payhere') == true ||
+          paymentMethod?.toLowerCase().contains('online') == true ||
+          paymentMethod?.toLowerCase().contains('card') == true;
+      final payNoticeMsg = isOnlinePay
+          ? 'Payment Secured: LKR ${price.toStringAsFixed(2)} is held in Escrow for "${title ?? "Care Task"}".'
+          : 'Cash Collection: Please collect LKR ${price.toStringAsFixed(2)} cash from the patient upon delivery.';
+
+      await NotificationService.sendNotification(
+        userId: helperId,
+        title: isOnlinePay ? 'Escrow Payment Secured' : 'Cash on Delivery Reminder',
+        message: payNoticeMsg,
+        type: NotificationType.payment,
         relatedTaskId: taskId,
       );
 
@@ -199,6 +219,15 @@ class TaskService {
         title: title ?? 'Task',
         category: category ?? 'all',
         helperName: helperName,
+      );
+
+      // Push FCM to helper device for task acceptance and payment info
+      _triggerHelperNotificationEdgeFunction(
+        helperId: helperId,
+        title: isOnlinePay ? 'Escrow Payment Secured' : 'Cash on Delivery Reminder',
+        body: payNoticeMsg,
+        taskId: taskId,
+        type: 'payment',
       );
     }
 
@@ -279,6 +308,32 @@ class TaskService {
           type: NotificationType.taskUpdate,
           relatedTaskId: taskId,
         );
+
+        _triggerHelperNotificationEdgeFunction(
+          helperId: assignedHelperId!,
+          title: 'Task Progress Updated',
+          body: 'Task "${title ?? "Care Task"}" is now $stepDisplayName.',
+          taskId: taskId,
+          type: 'taskUpdate',
+        );
+
+        if (step == TaskProgressStep.completed) {
+          await NotificationService.sendNotification(
+            userId: assignedHelperId!,
+            title: 'Payment Released!',
+            message: 'Earnings for "${title ?? "Care Task"}" have been credited to your available wallet balance.',
+            type: NotificationType.payment,
+            relatedTaskId: taskId,
+          );
+
+          _triggerHelperNotificationEdgeFunction(
+            helperId: assignedHelperId!,
+            title: 'Payment Released!',
+            body: 'Earnings for "${title ?? "Care Task"}" have been credited to your wallet balance.',
+            taskId: taskId,
+            type: 'payment',
+          );
+        }
       }
     }
 
@@ -334,6 +389,14 @@ class TaskService {
           type: NotificationType.taskUpdate,
           relatedTaskId: taskId,
         );
+
+        _triggerHelperNotificationEdgeFunction(
+          helperId: assignedHelperId,
+          title: 'Task Cancelled',
+          body: 'Task "$title" was cancelled by the patient.',
+          taskId: taskId,
+          type: 'taskUpdate',
+        );
       }
     }
   }
@@ -352,10 +415,8 @@ class TaskService {
       final String anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
       if (baseUrl.isEmpty) return;
 
-      final String edgeFunctionUrl = '$baseUrl/functions/v1/taskProgressNotificationsForPatient';
-
       await http.post(
-        Uri.parse(edgeFunctionUrl),
+        Uri.parse('$baseUrl/functions/v1/taskProgressNotificationsForPatient'),
         headers: {
           'Content-Type': 'application/json',
           if (anonKey.isNotEmpty) 'Authorization': 'Bearer $anonKey',
@@ -371,7 +432,40 @@ class TaskService {
         }),
       );
     } catch (_) {
-      // Handles background notification triggers silently
+      // Handles background patient notification triggers silently
+    }
+  }
+
+  /// Triggers the Supabase Edge Function to push FCM notifications directly to a helper device
+  static Future<void> _triggerHelperNotificationEdgeFunction({
+    required String helperId,
+    required String title,
+    required String body,
+    required String taskId,
+    required String type,
+  }) async {
+    try {
+      final String baseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+      final String anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+      if (baseUrl.isEmpty) return;
+
+      await http.post(
+        Uri.parse('$baseUrl/functions/v1/notifyHelper'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (anonKey.isNotEmpty) 'Authorization': 'Bearer $anonKey',
+          if (anonKey.isNotEmpty) 'apikey': anonKey,
+        },
+        body: jsonEncode({
+          'helperId': helperId,
+          'title': title,
+          'body': body,
+          'taskId': taskId,
+          'type': type,
+        }),
+      );
+    } catch (_) {
+      // Handles background helper notification triggers silently
     }
   }
 }

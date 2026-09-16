@@ -77,31 +77,27 @@ class ProofItem {
   }
 }
 
+/// Represents a task posted by a patient and its full lifecycle state in Firestore
 class TaskModel {
   final String id;
   final String patientId;
   final String? assignedHelperId;
   final String title;
-  final String hospital;
-  final String locationDetail;
-  final double? latitude;
-  final double? longitude;
-  final String? pickupAddress;
+  // pickupAddress is the primary location field (replaces legacy 'hospital')
+  final String pickupAddress;
   final double? pickupLat;
   final double? pickupLng;
   final String? dropoffAddress;
   final double? dropoffLat;
   final double? dropoffLng;
-  final String distanceStr;
-  final double distanceKm;
+  // roomDetail stores room/bed/ward info (replaces legacy 'locationDetail')
+  final String roomDetail;
   final String currency;
   final double price;
   final bool isUrgent;
   final TaskCategory category;
   final String deadline;
-  final String patientInfo;
   final String description;
-  final String startTimeStr;
   final TaskProgressStep progressStep;
   final List<ProofItem> proofItems;
   final String? attachmentUrl;
@@ -113,6 +109,7 @@ class TaskModel {
   final String? itemQuantity;
   final String? itemSpecialInstructions;
   final String? paymentMethod;
+  final String? payherePaymentId;
   final String? contactPreference;
 
   TaskModel({
@@ -120,26 +117,19 @@ class TaskModel {
     this.patientId = '',
     this.assignedHelperId,
     required this.title,
-    required this.hospital,
-    required this.locationDetail,
-    this.latitude,
-    this.longitude,
-    this.pickupAddress,
+    required this.pickupAddress,
     this.pickupLat,
     this.pickupLng,
     this.dropoffAddress,
     this.dropoffLat,
     this.dropoffLng,
-    required this.distanceStr,
-    required this.distanceKm,
+    this.roomDetail = '',
     required this.currency,
     required this.price,
     required this.isUrgent,
     required this.category,
     required this.deadline,
-    required this.patientInfo,
     required this.description,
-    required this.startTimeStr,
     this.progressStep = TaskProgressStep.pending,
     required this.proofItems,
     this.attachmentUrl,
@@ -151,10 +141,11 @@ class TaskModel {
     this.itemQuantity,
     this.itemSpecialInstructions,
     this.paymentMethod,
+    this.payherePaymentId,
     this.contactPreference,
   });
 
-  /// Creates a copy of the task model with optional field overrides.
+  /// Creates a copy of the task model with optional field overrides
   TaskModel copyWith({
     String? id,
     String? patientId,
@@ -165,6 +156,7 @@ class TaskModel {
     String? dropoffAddress,
     double? dropoffLat,
     double? dropoffLng,
+    String? roomDetail,
     TaskProgressStep? progressStep,
     List<ProofItem>? proofItems,
     String? attachmentUrl,
@@ -176,6 +168,7 @@ class TaskModel {
     String? itemQuantity,
     String? itemSpecialInstructions,
     String? paymentMethod,
+    String? payherePaymentId,
     String? contactPreference,
   }) {
     return TaskModel(
@@ -183,26 +176,19 @@ class TaskModel {
       patientId: patientId ?? this.patientId,
       assignedHelperId: assignedHelperId ?? this.assignedHelperId,
       title: title,
-      hospital: hospital,
-      locationDetail: locationDetail,
-      latitude: latitude,
-      longitude: longitude,
       pickupAddress: pickupAddress ?? this.pickupAddress,
       pickupLat: pickupLat ?? this.pickupLat,
       pickupLng: pickupLng ?? this.pickupLng,
       dropoffAddress: dropoffAddress ?? this.dropoffAddress,
       dropoffLat: dropoffLat ?? this.dropoffLat,
       dropoffLng: dropoffLng ?? this.dropoffLng,
-      distanceStr: distanceStr,
-      distanceKm: distanceKm,
+      roomDetail: roomDetail ?? this.roomDetail,
       currency: currency,
       price: price,
       isUrgent: isUrgent,
       category: category,
       deadline: deadline,
-      patientInfo: patientInfo,
       description: description,
-      startTimeStr: startTimeStr,
       progressStep: progressStep ?? this.progressStep,
       proofItems: proofItems ?? this.proofItems,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,
@@ -214,37 +200,31 @@ class TaskModel {
       itemQuantity: itemQuantity ?? this.itemQuantity,
       itemSpecialInstructions: itemSpecialInstructions ?? this.itemSpecialInstructions,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      payherePaymentId: payherePaymentId ?? this.payherePaymentId,
       contactPreference: contactPreference ?? this.contactPreference,
     );
   }
 
-  /// Converts TaskModel fields into a Map for Firestore storage.
+  /// Converts TaskModel fields into a clean Map for Firestore storage
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'patientId': patientId,
       'assignedHelperId': assignedHelperId,
       'title': title,
-      'hospital': hospital,
-      'locationDetail': locationDetail,
-      'latitude': latitude,
-      'longitude': longitude,
       'pickupAddress': pickupAddress,
       'pickupLat': pickupLat,
       'pickupLng': pickupLng,
       'dropoffAddress': dropoffAddress,
       'dropoffLat': dropoffLat,
       'dropoffLng': dropoffLng,
-      'distanceStr': distanceStr,
-      'distanceKm': distanceKm,
+      'roomDetail': roomDetail,
       'currency': currency,
       'price': price,
       'isUrgent': isUrgent,
       'category': category.name,
       'deadline': deadline,
-      'patientInfo': patientInfo,
       'description': description,
-      'startTimeStr': startTimeStr,
       'progressStep': progressStep.name,
       'proofItems': proofItems.map((e) => e.toMap()).toList(),
       'attachmentUrl': attachmentUrl,
@@ -256,29 +236,34 @@ class TaskModel {
       'itemQuantity': itemQuantity,
       'itemSpecialInstructions': itemSpecialInstructions,
       'paymentMethod': paymentMethod,
+      'payherePaymentId': payherePaymentId,
       'contactPreference': contactPreference,
     };
   }
 
-  /// Constructs a TaskModel instance from a Firestore document map.
+  /// Constructs a TaskModel instance from a Firestore document map with backward-compat fallbacks for legacy fields
   factory TaskModel.fromMap(Map<String, dynamic> map, {String? docId}) {
+    // Backward-compat: 'hospital' and 'pickupAddress' both map to pickupAddress
+    final pickup = (map['pickupAddress'] as String?)?.isNotEmpty == true
+        ? map['pickupAddress'] as String
+        : (map['hospital'] as String? ?? '');
+
+    // Backward-compat: 'locationDetail' maps to roomDetail
+    final room = map['roomDetail'] as String? ??
+        map['locationDetail'] as String? ?? '';
+
     return TaskModel(
       id: docId ?? map['id'] as String? ?? '',
       patientId: map['patientId'] as String? ?? '',
       assignedHelperId: map['assignedHelperId'] as String?,
       title: map['title'] as String? ?? '',
-      hospital: map['hospital'] as String? ?? '',
-      locationDetail: map['locationDetail'] as String? ?? '',
-      latitude: (map['latitude'] as num?)?.toDouble(),
-      longitude: (map['longitude'] as num?)?.toDouble(),
-      pickupAddress: map['pickupAddress'] as String?,
+      pickupAddress: pickup,
       pickupLat: (map['pickupLat'] as num?)?.toDouble(),
       pickupLng: (map['pickupLng'] as num?)?.toDouble(),
       dropoffAddress: map['dropoffAddress'] as String?,
       dropoffLat: (map['dropoffLat'] as num?)?.toDouble(),
       dropoffLng: (map['dropoffLng'] as num?)?.toDouble(),
-      distanceStr: map['distanceStr'] as String? ?? '0.0 km',
-      distanceKm: (map['distanceKm'] as num?)?.toDouble() ?? 0.0,
+      roomDetail: room,
       currency: map['currency'] as String? ?? 'LKR',
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
       isUrgent: map['isUrgent'] as bool? ?? false,
@@ -287,9 +272,7 @@ class TaskModel {
         orElse: () => TaskCategory.medicine,
       ),
       deadline: map['deadline'] as String? ?? '',
-      patientInfo: map['patientInfo'] as String? ?? '',
       description: map['description'] as String? ?? '',
-      startTimeStr: map['startTimeStr'] as String? ?? '',
       progressStep: TaskProgressStep.values.firstWhere(
         (e) => e.name == map['progressStep'],
         orElse: () => TaskProgressStep.pending,
@@ -307,8 +290,8 @@ class TaskModel {
       itemQuantity: map['itemQuantity'] as String?,
       itemSpecialInstructions: map['itemSpecialInstructions'] as String?,
       paymentMethod: map['paymentMethod'] as String?,
+      payherePaymentId: map['payherePaymentId'] as String? ?? map['stripePaymentIntentId'] as String?,
       contactPreference: map['contactPreference'] as String?,
     );
   }
 }
-
