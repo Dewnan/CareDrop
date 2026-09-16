@@ -44,6 +44,7 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
 
     final appState = context.read<CareDropAppState>();
     final activeTask = appState.activeTask;
+    final taskAmount = activeTask?.price ?? 0.0;
 
     if (activeTask != null) {
       try {
@@ -61,7 +62,7 @@ class _UploadProofScreenState extends State<UploadProofScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const TaskCompleteConfirmScreen(),
+        builder: (_) => TaskCompleteConfirmScreen(amount: taskAmount),
       ),
     );
   }

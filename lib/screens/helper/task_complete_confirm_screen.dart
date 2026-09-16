@@ -4,8 +4,14 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import 'helper_dashboard_screen.dart';
 
+/// Displays task completion confirmation screen with summary of earned task amount.
 class TaskCompleteConfirmScreen extends StatelessWidget {
-  const TaskCompleteConfirmScreen({super.key});
+  final double amount;
+
+  const TaskCompleteConfirmScreen({
+    super.key,
+    this.amount = 0.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -81,9 +87,9 @@ class TaskCompleteConfirmScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'RS 220.00',
-                      style: TextStyle(
+                    Text(
+                      'RS ${amount.toStringAsFixed(2)}',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
