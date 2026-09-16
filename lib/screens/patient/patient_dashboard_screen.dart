@@ -159,7 +159,7 @@ class _PatientHomeTab extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${activeTask.hospital} · ${activeTask.deadline}',
+                            '${activeTask.pickupAddress} · ${activeTask.deadline}',
                             style: const TextStyle(color: Colors.white70, fontSize: 13),
                           ),
                         ],
@@ -298,7 +298,7 @@ class _PatientHomeTab extends StatelessWidget {
                                 padding: const EdgeInsets.only(bottom: 10),
                                 child: TaskCardTile(
                                   task: t,
-                                  showDistance: false,
+
                                   onTap: () {
                                     if (t.assignedHelperId != null || t.progressStep != TaskProgressStep.pending) {
                                       Navigator.push(

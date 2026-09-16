@@ -118,17 +118,15 @@ class _HelperMapScreenState extends State<HelperMapScreen> {
     final pickupPos = await _resolveLocation(
       lat: task.pickupLat,
       lng: task.pickupLng,
-      addressQuery: (task.pickupAddress != null && task.pickupAddress!.isNotEmpty)
-          ? task.pickupAddress
-          : task.hospital,
+      addressQuery: task.pickupAddress.isNotEmpty ? task.pickupAddress : null,
     );
 
     final dropoffPos = await _resolveLocation(
-      lat: task.dropoffLat ?? task.latitude,
-      lng: task.dropoffLng ?? task.longitude,
+      lat: task.dropoffLat,
+      lng: task.dropoffLng,
       addressQuery: (task.dropoffAddress != null && task.dropoffAddress!.isNotEmpty)
           ? task.dropoffAddress
-          : task.locationDetail,
+          : task.roomDetail,
     );
 
     if (pickupPos == null && dropoffPos == null) {
@@ -357,8 +355,8 @@ class _HelperMapScreenState extends State<HelperMapScreen> {
 
     final displayTitle = isDropoffPhase ? 'Dropoff Location' : 'Pickup Location';
     final displayAddress = isDropoffPhase
-        ? (task.dropoffAddress ?? task.locationDetail.replaceAll('(select via map)', '').trim())
-        : (task.pickupAddress ?? task.hospital);
+        ? (task.dropoffAddress ?? task.roomDetail.replaceAll('(select via map)', '').trim())
+        : task.pickupAddress;
 
     final bounds = LatLngBounds.fromPoints([startPos, targetPos]);
 

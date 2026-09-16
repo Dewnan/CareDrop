@@ -7,6 +7,7 @@ import '../../components/user_avatar_widget.dart';
 import '../common/edit_profile_screen.dart';
 import '../common/landing_screen.dart';
 
+
 class PatientProfileScreen extends StatelessWidget {
   const PatientProfileScreen({super.key});
 
@@ -95,6 +96,7 @@ class PatientProfileScreen extends StatelessWidget {
                     _buildMenuItem(
                       Icons.person_outline,
                       'Personal Information',
+                      isLast: true,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -104,7 +106,6 @@ class PatientProfileScreen extends StatelessWidget {
                         );
                       },
                     ),
-                    _buildMenuItem(Icons.payment_outlined, 'Payment Methods', isLast: true),
                   ]),
 
                   const SizedBox(height: 24),

@@ -7,13 +7,11 @@ import '../theme/app_theme.dart';
 class TaskCardTile extends StatelessWidget {
   final TaskModel task;
   final VoidCallback? onTap;
-  final bool showDistance;
 
   const TaskCardTile({
     super.key,
     required this.task,
     this.onTap,
-    this.showDistance = true,
   });
 
   /// Selects an appropriate category icon based on task category.
@@ -54,8 +52,7 @@ class TaskCardTile extends StatelessWidget {
       statusLabel = 'Pending';
     }
 
-    final pickupClean = (task.pickupAddress ?? task.hospital).replaceAll('(select via map)', '').trim();
-    final subtitleText = pickupClean.isNotEmpty ? pickupClean : task.hospital;
+    final subtitleText = task.pickupAddress.replaceAll('(select via map)', '').trim();
 
     return InkWell(
       onTap: onTap,
@@ -107,19 +104,7 @@ class TaskCardTile extends StatelessWidget {
                       fontSize: 12,
                     ),
                   ),
-                  if (showDistance && task.distanceStr.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined, size: 12, color: CareDropTheme.textMuted),
-                        const SizedBox(width: 2),
-                        Text(
-                          task.distanceStr,
-                          style: const TextStyle(color: CareDropTheme.textMuted, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ],
+
                 ],
               ),
             ),

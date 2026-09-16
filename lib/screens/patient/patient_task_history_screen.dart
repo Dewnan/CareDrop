@@ -72,7 +72,7 @@ class PatientTaskHistoryScreen extends StatelessWidget {
                     final task = tasks[index];
                     return TaskCardTile(
                       task: task,
-                      showDistance: false,
+
                       onTap: () {
                         if (task.assignedHelperId != null || task.progressStep != TaskProgressStep.pending) {
                           Navigator.push(

@@ -13,20 +13,27 @@ import 'theme/app_theme.dart';
 import 'screens/common/landing_screen.dart';
 import 'screens/patient/patient_dashboard_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/helper/helper_dashboard_screen.dart';
 
-/// Entry point of the application that initializes Firebase, Supabase, requests initial runtime permissions, and runs the root app widget.
+/// Entry point of the application that initializes Firebase, Supabase, requests runtime permissions, and runs root widget.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (_) {}
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await SupabaseStorageService().initialize();
   await PermissionService.requestInitialPermissions();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   FcmNotificationService.initializeForegroundListeners();
   runApp(const CareDropApp());
 }
+
 
 class CareDropApp extends StatelessWidget {
   const CareDropApp({super.key});

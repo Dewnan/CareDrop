@@ -8,6 +8,7 @@ import '../common/edit_profile_screen.dart';
 import '../common/landing_screen.dart';
 import 'settings_screen.dart';
 import 'ratings_screen.dart';
+import 'payout_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -124,7 +125,14 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 _ProfileItem(
                   title: 'Payout Settings',
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PayoutSettingsScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

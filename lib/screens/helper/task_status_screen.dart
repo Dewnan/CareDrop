@@ -105,7 +105,7 @@ class TaskStatusScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     _ProgressCheckRow(
-                      title: 'Arrived at ${task?.hospital ?? 'PPUM'}',
+                      title: 'Arrived at ${task?.pickupAddress.isNotEmpty == true ? task!.pickupAddress : 'Pickup Location'}',
                       isCompleted: true,
                     ),
                     const SizedBox(height: 14),

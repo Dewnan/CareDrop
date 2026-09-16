@@ -11,6 +11,9 @@ import '../../services/supabase_storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../../components/feedback_banner.dart';
 import '../../components/loading_indicator.dart';
+import '../../services/payment_service.dart';
+import '../../services/notification_service.dart';
+import '../../models/notification_model.dart';
 import 'patient_searching_helpers_screen.dart';
 
 /// Screen for reviewing and confirming task details before posting it to Firestore and Supabase Storage.
@@ -25,11 +28,22 @@ class PatientTaskConfirmScreen extends StatefulWidget {
   });
 
   @override
-  State<PatientTaskConfirmScreen> createState() => _PatientTaskConfirmScreenState();
+  State<PatientTaskConfirmScreen> createState() =>
+      _PatientTaskConfirmScreenState();
 }
 
 class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
   bool _isSubmitting = false;
+  late String _selectedPaymentMethod;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialMethod = widget.formData?.paymentMethod ?? '';
+    _selectedPaymentMethod = initialMethod.isNotEmpty
+        ? initialMethod
+        : 'Online Payment (PayHere Card / Mobile Wallet)';
+  }
 
   /// Formats non-empty address components without dangling commas or leading/trailing commas.
   String _formatAddress(List<String?> parts, {String prefix = ''}) {
@@ -37,15 +51,23 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
         .where((p) => p != null && p.trim().isNotEmpty && p.trim() != ',')
         .map((p) => p!.trim())
         .toList();
-    if (cleanParts.isEmpty) return prefix.isNotEmpty ? prefix : 'Location specified';
-    return prefix.isNotEmpty ? '$prefix: ${cleanParts.join(', ')}' : cleanParts.join(', ');
+    if (cleanParts.isEmpty) {
+      return prefix.isNotEmpty ? prefix : 'Location specified';
+    }
+    return prefix.isNotEmpty
+        ? '$prefix: ${cleanParts.join(', ')}'
+        : cleanParts.join(', ');
   }
 
   /// Calculates dynamic distance between pickup and dropoff coordinates if present, or returns default estimated distance.
   double _calculateDistanceKm(TaskCreationFormData data) {
-    if (data.pickupLat != null && data.pickupLng != null && data.dropoffLat != null && data.dropoffLng != null) {
+    if (data.pickupLat != null &&
+        data.pickupLng != null &&
+        data.dropoffLat != null &&
+        data.dropoffLng != null) {
       const p = 0.017453292519943295; // Pi / 180
-      final a = 0.5 -
+      final a =
+          0.5 -
           math.cos((data.dropoffLat! - data.pickupLat!) * p) / 2 +
           math.cos(data.pickupLat! * p) *
               math.cos(data.dropoffLat! * p) *
@@ -57,31 +79,40 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
     return 1.5;
   }
 
-  /// Handles task creation request with duplicate submission prevention and storage upload.
+  /// Handles task creation request with duplicate submission prevention, PayHere payment processing, and storage upload.
   Future<void> _handlePostTask({
     required TaskCreationFormData data,
     required String pickupAddress,
     required String dropoffAddress,
     required String scheduleDisplay,
-    required String distanceStr,
-    required double distanceKm,
-    required String requesterName,
     required double totalFee,
   }) async {
     if (_isSubmitting) return;
 
     final requiresPickup = data.taskType != 'Other';
-    final requiresDropoff = data.taskType == 'Medicine Pickup' ||
+    final requiresDropoff =
+        data.taskType == 'Medicine Pickup' ||
         data.taskType == 'Pharmacy Purchase' ||
         data.taskType == 'Document Delivery';
 
     if (requiresPickup && (data.pickupLat == null || data.pickupLng == null)) {
-      FeedbackBanner.show(context, message: 'Pickup location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
+      FeedbackBanner.show(
+        context,
+        message:
+            'Pickup location coordinates are missing. Please pin location on map.',
+        type: FeedbackType.error,
+      );
       return;
     }
 
-    if (requiresDropoff && (data.dropoffLat == null || data.dropoffLng == null)) {
-      FeedbackBanner.show(context, message: 'Drop-off location coordinates are missing. Please pin location on map.', type: FeedbackType.error);
+    if (requiresDropoff &&
+        (data.dropoffLat == null || data.dropoffLng == null)) {
+      FeedbackBanner.show(
+        context,
+        message:
+            'Drop-off location coordinates are missing. Please pin location on map.',
+        type: FeedbackType.error,
+      );
       return;
     }
 
@@ -96,7 +127,8 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
       // Upload attachment file/bytes to Supabase Storage if attached and not yet uploaded
       if (uploadedDocumentUrl == null && data.attachmentFileName != null) {
         final storageService = SupabaseStorageService();
-        if (data.localAttachmentPath != null && data.localAttachmentPath!.isNotEmpty) {
+        if (data.localAttachmentPath != null &&
+            data.localAttachmentPath!.isNotEmpty) {
           final file = File(data.localAttachmentPath!);
           uploadedDocumentUrl = await storageService.uploadDocument(
             file: file,
@@ -112,8 +144,82 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
         }
       }
 
+      String? payherePaymentId;
+      final isPayHere =
+          _selectedPaymentMethod.toLowerCase().contains('payhere') ||
+          _selectedPaymentMethod.toLowerCase().contains('card') ||
+          _selectedPaymentMethod.toLowerCase().contains('online');
+
+      if (isPayHere) {
+        if (!mounted) return;
+        final appState = context.read<CareDropAppState>();
+        final currentUser = FirebaseAuth.instance.currentUser;
+
+        final tempOrderId = 'ORD_${DateTime.now().millisecondsSinceEpoch}';
+        final userEmail =
+            appState.currentUserModel?.email ??
+            currentUser?.email ??
+            'patient@caredrop.lk';
+        final userPhone =
+            appState.currentUserModel?.phone ??
+            currentUser?.phoneNumber ??
+            '+94770000000';
+
+        final customerName =
+            appState.currentUserModel?.fullName.isNotEmpty == true
+            ? appState.currentUserModel!.fullName
+            : (currentUser?.displayName?.isNotEmpty == true
+                  ? currentUser!.displayName!
+                  : 'Patient');
+
+        try {
+          payherePaymentId = await PaymentService.processPayHerePayment(
+            orderId: tempOrderId,
+            amount: totalFee,
+            taskTitle: data.taskType,
+            customerName: customerName,
+            customerEmail: userEmail,
+            customerPhone: userPhone,
+            currency: 'LKR',
+          );
+        } catch (payErr) {
+          final cleanErr = payErr.toString().replaceAll('Exception: ', '');
+          await NotificationService.sendNotification(
+            userId: currentUserId,
+            title: 'Payment Failed',
+            message: 'PayHere payment issue: $cleanErr',
+            type: NotificationType.payment,
+          );
+
+          if (mounted) {
+            FeedbackBanner.show(
+              context,
+              message: 'PayHere Error: $cleanErr',
+              type: FeedbackType.error,
+              duration: const Duration(seconds: 5),
+            );
+          }
+          setState(() => _isSubmitting = false);
+          return;
+        }
+
+        if (payherePaymentId == null) {
+          if (mounted) {
+            FeedbackBanner.show(
+              context,
+              message: 'PayHere payment was canceled or failed.',
+              type: FeedbackType.warning,
+            );
+          }
+          setState(() => _isSubmitting = false);
+          return;
+        }
+      }
+
       final category = TaskCategory.values.firstWhere(
-        (e) => e.name.toLowerCase() == data.taskType.toLowerCase().replaceAll(' ', ''),
+        (e) =>
+            e.name.toLowerCase() ==
+            data.taskType.toLowerCase().replaceAll(' ', ''),
         orElse: () => TaskCategory.medicine,
       );
 
@@ -121,24 +227,19 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
         id: '',
         patientId: currentUserId,
         title: data.taskType,
-        hospital: data.pickupHospital,
-        locationDetail: dropoffAddress.isNotEmpty ? dropoffAddress : pickupAddress,
-        pickupAddress: pickupAddress.isNotEmpty ? pickupAddress : null,
+        pickupAddress: pickupAddress.isNotEmpty ? pickupAddress : data.pickupHospital,
         pickupLat: data.pickupLat,
         pickupLng: data.pickupLng,
         dropoffAddress: dropoffAddress.isNotEmpty ? dropoffAddress : null,
         dropoffLat: data.dropoffLat,
         dropoffLng: data.dropoffLng,
-        distanceStr: distanceStr,
-        distanceKm: distanceKm,
+        roomDetail: dropoffAddress.isNotEmpty ? dropoffAddress : pickupAddress,
         currency: 'LKR',
         price: totalFee,
         isUrgent: data.priority == 'Urgent',
         category: category,
         deadline: scheduleDisplay,
-        patientInfo: requesterName,
         description: data.description,
-        startTimeStr: DateTime.now().toString(),
         progressStep: TaskProgressStep.pending,
         proofItems: [
           ProofItem(title: 'Item Photo', isRequired: true),
@@ -146,22 +247,42 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
         ],
         attachmentUrl: uploadedDocumentUrl,
         attachmentFileName: data.attachmentFileName,
-        serviceDuration: data.taskType == 'Patient Caregiver' ? data.serviceDuration : null,
-        preferredGender: data.taskType == 'Patient Caregiver' ? data.preferredGender : null,
-        preferredLanguage: data.taskType == 'Patient Caregiver' ? data.preferredLanguage : null,
+        serviceDuration: data.taskType == 'Patient Caregiver'
+            ? data.serviceDuration
+            : null,
+        preferredGender: data.taskType == 'Patient Caregiver'
+            ? data.preferredGender
+            : null,
+        preferredLanguage: data.taskType == 'Patient Caregiver'
+            ? data.preferredLanguage
+            : null,
         itemName: data.itemName,
         itemQuantity: data.itemQuantity,
         itemSpecialInstructions: data.itemSpecialInstructions,
-        paymentMethod: data.paymentMethod,
+        paymentMethod: _selectedPaymentMethod,
+        payherePaymentId: payherePaymentId,
         contactPreference: data.contactPreference,
       );
 
       final taskId = await TaskService.createTask(newTask);
 
+      // Save payment success / task created notification
+      await NotificationService.sendNotification(
+        userId: currentUserId,
+        title: isPayHere ? 'Payment Held in Escrow' : 'Task Posted',
+        message: isPayHere
+            ? 'LKR ${totalFee.toStringAsFixed(2)} held safely in Escrow for ${data.taskType}.'
+            : 'Task ${data.taskType} created successfully.',
+        type: NotificationType.payment,
+        relatedTaskId: taskId,
+      );
+
       if (!mounted) return;
       FeedbackBanner.show(
         context,
-        message: 'Task posted successfully! Searching for nearby available helpers...',
+        message: isPayHere
+            ? 'PayHere payment held securely in Escrow! Searching for nearby helpers...'
+            : 'Task posted successfully! Searching for nearby available helpers...',
         type: FeedbackType.success,
       );
 
@@ -187,21 +308,17 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final data = widget.formData ?? TaskCreationFormData(taskType: widget.taskTypeName);
+    final data =
+        widget.formData ?? TaskCreationFormData(taskType: widget.taskTypeName);
     final appState = context.watch<CareDropAppState>();
     User? firebaseUser;
     try {
       firebaseUser = FirebaseAuth.instance.currentUser;
     } catch (_) {}
-    final requesterName = (appState.currentUserModel?.fullName.isNotEmpty == true)
-        ? appState.currentUserModel!.fullName
-        : (firebaseUser?.displayName?.isNotEmpty == true
-            ? firebaseUser!.displayName!
-            : 'Patient');
 
-    final isCashPayment = data.paymentMethod.toLowerCase().contains('cash');
+    final isCashPayment = _selectedPaymentMethod.toLowerCase().contains('cash');
     final baseFee = double.tryParse(data.budget ?? '250') ?? 250.0;
-    // Exclude service platform fee for Cash on Delivery per requirement 6
+    // Exclude service platform fee for Cash on Delivery
     final platformFee = isCashPayment ? 0.0 : 30.0;
     final totalFee = baseFee + platformFee;
 
@@ -219,7 +336,8 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
     ]);
 
     // Schedule string per requirements 3 & 4
-    final dateStr = '${data.scheduledDate.year}-${data.scheduledDate.month.toString().padLeft(2, '0')}-${data.scheduledDate.day.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${data.scheduledDate.year}-${data.scheduledDate.month.toString().padLeft(2, '0')}-${data.scheduledDate.day.toString().padLeft(2, '0')}';
     final timeStr = data.scheduledTime.format(context);
     final scheduleDisplay = '$dateStr at $timeStr';
 
@@ -232,7 +350,11 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: CareDropTheme.textPrimary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: CareDropTheme.textPrimary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -270,7 +392,11 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                             color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.inventory_2_outlined, color: CareDropTheme.royalBlue, size: 22),
+                          child: const Icon(
+                            Icons.inventory_2_outlined,
+                            color: CareDropTheme.royalBlue,
+                            size: 22,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -287,7 +413,10 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                               ),
                               const SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: data.priority == 'Urgent'
                                       ? const Color(0xFFFEE2E2)
@@ -314,11 +443,14 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                     const Divider(height: 1),
                     const SizedBox(height: 16),
                     _buildDetailRow('Pickup', pickupAddress),
-                    if (dropoffAddress.isNotEmpty && dropoffAddress != pickupAddress) ...[
+                    if (dropoffAddress.isNotEmpty &&
+                        dropoffAddress != pickupAddress) ...[
                       const SizedBox(height: 10),
                       _buildDetailRow('Drop-off', dropoffAddress),
                     ],
-                    if (!data.isAsap && data.priority != 'Urgent' && data.priority != 'ASAP') ...[
+                    if (!data.isAsap &&
+                        data.priority != 'Urgent' &&
+                        data.priority != 'ASAP') ...[
                       const SizedBox(height: 10),
                       _buildDetailRow('Schedule', scheduleDisplay),
                     ],
@@ -332,13 +464,18 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                       const SizedBox(height: 10),
                       _buildDetailRow('Item / Medicine', data.itemName!),
                     ],
-                    if (data.itemQuantity != null && data.itemQuantity!.isNotEmpty) ...[
+                    if (data.itemQuantity != null &&
+                        data.itemQuantity!.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       _buildDetailRow('Quantity', data.itemQuantity!),
                     ],
-                    if (data.itemSpecialInstructions != null && data.itemSpecialInstructions!.isNotEmpty) ...[
+                    if (data.itemSpecialInstructions != null &&
+                        data.itemSpecialInstructions!.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow('Item Notes', data.itemSpecialInstructions!),
+                      _buildDetailRow(
+                        'Item Notes',
+                        data.itemSpecialInstructions!,
+                      ),
                     ],
                     if (data.taskType == 'Patient Caregiver') ...[
                       const SizedBox(height: 10),
@@ -348,9 +485,211 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                       const SizedBox(height: 10),
                       _buildDetailRow('Language Req.', data.preferredLanguage),
                     ],
-                    if (data.attachmentFileName != null || data.localAttachmentPath != null || data.attachmentBytes != null || data.attachmentUrl != null) ...[
+                    if (data.attachmentFileName != null ||
+                        data.localAttachmentPath != null ||
+                        data.attachmentBytes != null ||
+                        data.attachmentUrl != null) ...[
                       _buildAttachmentPreview(data),
                     ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Payment Method Selector card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: CareDropTheme.cardBorderColor),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SELECT PAYMENT METHOD',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: CareDropTheme.royalBlue,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () => setState(
+                        () => _selectedPaymentMethod = 'Online Payment',
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              _selectedPaymentMethod.toLowerCase().contains(
+                                    'payhere',
+                                  ) ||
+                                  _selectedPaymentMethod.toLowerCase().contains(
+                                    'online',
+                                  ) ||
+                                  _selectedPaymentMethod.toLowerCase().contains(
+                                    'card',
+                                  )
+                              ? const Color(0xFFEFF6FF)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color:
+                                _selectedPaymentMethod.toLowerCase().contains(
+                                      'payhere',
+                                    ) ||
+                                    _selectedPaymentMethod
+                                        .toLowerCase()
+                                        .contains('online') ||
+                                    _selectedPaymentMethod
+                                        .toLowerCase()
+                                        .contains('card')
+                                ? CareDropTheme.royalBlue
+                                : CareDropTheme.cardBorderColor,
+                            width:
+                                _selectedPaymentMethod.toLowerCase().contains(
+                                      'payhere',
+                                    ) ||
+                                    _selectedPaymentMethod
+                                        .toLowerCase()
+                                        .contains('online') ||
+                                    _selectedPaymentMethod
+                                        .toLowerCase()
+                                        .contains('card')
+                                ? 1.5
+                                : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.payment,
+                              color: CareDropTheme.royalBlue,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Online Payment (PayHere Card / Wallet)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: CareDropTheme.textPrimary,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'LKR Cards, EzCash, mCash & NetBanking in Escrow',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: CareDropTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Radio<String>(
+                              value:
+                                  'Online Payment (PayHere Card / Mobile Wallet)',
+                              groupValue: _selectedPaymentMethod,
+                              activeColor: CareDropTheme.royalBlue,
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _selectedPaymentMethod = val);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () => setState(
+                        () => _selectedPaymentMethod = 'Cash on Delivery',
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              _selectedPaymentMethod.toLowerCase().contains(
+                                'cash',
+                              )
+                              ? const Color(0xFFEFF6FF)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color:
+                                _selectedPaymentMethod.toLowerCase().contains(
+                                  'cash',
+                                )
+                                ? CareDropTheme.royalBlue
+                                : CareDropTheme.cardBorderColor,
+                            width:
+                                _selectedPaymentMethod.toLowerCase().contains(
+                                  'cash',
+                                )
+                                ? 1.5
+                                : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.payments_outlined,
+                              color: CareDropTheme.royalBlue,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Cash on Delivery',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: CareDropTheme.textPrimary,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Pay cash directly to helper upon task handover',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: CareDropTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Radio<String>(
+                              value: 'Cash on Delivery',
+                              groupValue: _selectedPaymentMethod,
+                              activeColor: CareDropTheme.royalBlue,
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _selectedPaymentMethod = val);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -379,21 +718,33 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildPriceRow('Offered Budget', 'LKR ${baseFee.toStringAsFixed(2)}'),
+                    _buildPriceRow(
+                      'Offered Budget',
+                      'LKR ${baseFee.toStringAsFixed(2)}',
+                    ),
                     const SizedBox(height: 8),
-                    _buildPriceRow('Payment Method', data.paymentMethod),
+                    _buildPriceRow('Payment Method', _selectedPaymentMethod),
                     const SizedBox(height: 8),
                     _buildPriceRow(
                       'Service Platform Fee',
-                      isCashPayment ? 'LKR 0.00 (Cash)' : 'LKR ${platformFee.toStringAsFixed(2)}',
+                      isCashPayment
+                          ? 'LKR 0.00 (Cash)'
+                          : 'LKR ${platformFee.toStringAsFixed(2)}',
                     ),
+
                     const SizedBox(height: 12),
                     const Divider(height: 1),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        const Text(
+                          'Total Amount',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
                         Text(
                           'LKR ${totalFee.toStringAsFixed(2)}',
                           style: const TextStyle(
@@ -417,35 +768,41 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CareDropTheme.royalBlue,
-                    disabledBackgroundColor: CareDropTheme.royalBlue.withValues(alpha: 0.5),
+                    disabledBackgroundColor: CareDropTheme.royalBlue.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
                   onPressed: _isSubmitting
                       ? null
                       : () => _handlePostTask(
-                            data: data,
-                            pickupAddress: pickupAddress,
-                            dropoffAddress: dropoffAddress,
-                            scheduleDisplay: scheduleDisplay,
-                            distanceStr: distanceStr,
-                            distanceKm: distanceKm,
-                            requesterName: requesterName,
-                            totalFee: totalFee,
-                          ),
+                          data: data,
+                          pickupAddress: pickupAddress,
+                          dropoffAddress: dropoffAddress,
+                          scheduleDisplay: scheduleDisplay,
+                          totalFee: totalFee,
+                        ),
                   child: _isSubmitting
-                      ? const Row(
+                      ? Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             AppLoadingIndicator(size: 20, color: Colors.white),
                             SizedBox(width: 12),
                             Text(
                               'Posting Task...',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         )
                       : const Text(
                           'Post Task',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                 ),
               ),
@@ -464,7 +821,10 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
           width: 90,
           child: Text(
             label,
-            style: const TextStyle(color: CareDropTheme.textMuted, fontSize: 12),
+            style: const TextStyle(
+              color: CareDropTheme.textMuted,
+              fontSize: 12,
+            ),
           ),
         ),
         Expanded(
@@ -481,12 +841,30 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
     );
   }
 
+  /// Renders a single row in the payment summary table with label and right-aligned price or detail text.
   Widget _buildPriceRow(String label, String price) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: CareDropTheme.textSecondary, fontSize: 13)),
-        Text(price, style: const TextStyle(color: CareDropTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: CareDropTheme.textSecondary,
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            price,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: CareDropTheme.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -494,26 +872,53 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
   /// Displays visual preview thumbnail or document file badge for attached task documents.
   Widget _buildAttachmentPreview(TaskCreationFormData data) {
     Widget imageWidget;
-    if (data.localAttachmentPath != null && data.localAttachmentPath!.isNotEmpty) {
+    if (data.localAttachmentPath != null &&
+        data.localAttachmentPath!.isNotEmpty) {
       final file = File(data.localAttachmentPath!);
       if (file.existsSync()) {
-        imageWidget = Image.file(file, height: 140, width: double.infinity, fit: BoxFit.cover);
+        imageWidget = Image.file(
+          file,
+          height: 140,
+          width: double.infinity,
+          fit: BoxFit.cover,
+        );
       } else {
-        imageWidget = const Icon(Icons.insert_drive_file_outlined, size: 40, color: CareDropTheme.royalBlue);
+        imageWidget = const Icon(
+          Icons.insert_drive_file_outlined,
+          size: 40,
+          color: CareDropTheme.royalBlue,
+        );
       }
     } else if (data.attachmentBytes != null) {
-      imageWidget = Image.memory(data.attachmentBytes, height: 140, width: double.infinity, fit: BoxFit.cover);
+      imageWidget = Image.memory(
+        data.attachmentBytes,
+        height: 140,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
     } else if (data.attachmentUrl != null && data.attachmentUrl!.isNotEmpty) {
-      imageWidget = Image.network(data.attachmentUrl!, height: 140, width: double.infinity, fit: BoxFit.cover);
+      imageWidget = Image.network(
+        data.attachmentUrl!,
+        height: 140,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
     } else {
-      imageWidget = const Icon(Icons.insert_drive_file_outlined, size: 40, color: CareDropTheme.royalBlue);
+      imageWidget = const Icon(
+        Icons.insert_drive_file_outlined,
+        size: 40,
+        color: CareDropTheme.royalBlue,
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
-        const Text('Attachment', style: TextStyle(color: CareDropTheme.textMuted, fontSize: 12)),
+        const Text(
+          'Attachment',
+          style: TextStyle(color: CareDropTheme.textMuted, fontSize: 12),
+        ),
         const SizedBox(height: 6),
         Container(
           width: double.infinity,
@@ -528,10 +933,17 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
               imageWidget,
               if (data.attachmentFileName != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   child: Text(
                     data.attachmentFileName!,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: CareDropTheme.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: CareDropTheme.textPrimary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -543,4 +955,3 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
     );
   }
 }
-

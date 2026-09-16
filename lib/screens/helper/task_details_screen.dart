@@ -52,42 +52,32 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         ? appState.currentUserModel!.phone
         : '+94 77 123 4567';
 
-    // Sanitize Patient Name
-    final rawPatientInfo = task.patientInfo;
-    final isPrefString = rawPatientInfo.contains('Sinhala') ||
-        rawPatientInfo.contains('Tamil') ||
-        rawPatientInfo.contains('English') ||
-        rawPatientInfo.contains('preference');
-    final displayPatientName = (isPrefString || rawPatientInfo.trim().isEmpty)
-        ? (appState.currentUserModel?.fullName.isNotEmpty == true
-            ? appState.currentUserModel!.fullName
-            : 'Patient')
-        : rawPatientInfo;
+    // Use the full name from the logged-in user's profile as the display patient name
+    final displayPatientName = appState.currentUserModel?.fullName.isNotEmpty == true
+        ? appState.currentUserModel!.fullName
+        : 'Patient';
 
     // Format Pickup and Dropoff Locations cleanly
-    final rawPickup = task.pickupAddress ?? task.hospital;
-    final cleanPickup = rawPickup.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
+    final cleanPickup = task.pickupAddress.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
     final displayPickupLocation = cleanPickup.isNotEmpty ? cleanPickup : 'General Hospital Pickup';
 
     String cleanDropoff = '';
     if (task.dropoffAddress != null && task.dropoffAddress!.isNotEmpty) {
       cleanDropoff = task.dropoffAddress!.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
-    } else if (task.locationDetail.isNotEmpty &&
-        task.locationDetail != task.pickupAddress &&
-        task.locationDetail != task.hospital &&
-        task.locationDetail != displayPickupLocation) {
-      cleanDropoff = task.locationDetail.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
+    } else if (task.roomDetail.isNotEmpty &&
+        task.roomDetail != task.pickupAddress &&
+        task.roomDetail != displayPickupLocation) {
+      cleanDropoff = task.roomDetail.replaceAll('(select via map)', '').replaceAll(', ,', '').trim();
     }
     final displayDropoffLocation = cleanDropoff.isNotEmpty ? cleanDropoff : 'Dropoff Point / Patient Ward';
 
-    // Format Room & Bed details cleanly: hide when empty or when identical to pickup/dropoff locations
+    // Format Room & Bed details cleanly: hide when empty or identical to pickup/dropoff
     String? roomBedDetail;
-    if (task.locationDetail.isNotEmpty && !task.locationDetail.contains('(select via map)')) {
-      final candidate = task.locationDetail.replaceAll(', ,', '').trim();
+    if (task.roomDetail.isNotEmpty && !task.roomDetail.contains('(select via map)')) {
+      final candidate = task.roomDetail.replaceAll(', ,', '').trim();
       if (candidate.isNotEmpty &&
           candidate != displayPickupLocation &&
           candidate != displayDropoffLocation &&
-          candidate != task.hospital &&
           candidate != task.pickupAddress &&
           candidate != task.dropoffAddress) {
         roomBedDetail = candidate;
@@ -184,11 +174,71 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
                     if (task.paymentMethod != null && task.paymentMethod!.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      _DetailItem(
-                        label: 'Payment Method',
-                        value: task.paymentMethod!,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Payment Method',
+                            style: TextStyle(color: CareDropTheme.textMuted, fontSize: 13),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: task.paymentMethod!.toLowerCase().contains('payhere') ||
+                                      task.paymentMethod!.toLowerCase().contains('online') ||
+                                      task.paymentMethod!.toLowerCase().contains('card')
+                                  ? const Color(0xFFEFF6FF)
+                                  : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: task.paymentMethod!.toLowerCase().contains('payhere') ||
+                                        task.paymentMethod!.toLowerCase().contains('online') ||
+                                        task.paymentMethod!.toLowerCase().contains('card')
+                                    ? CareDropTheme.royalBlue
+                                    : CareDropTheme.cardBorderColor,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  task.paymentMethod!.toLowerCase().contains('payhere') ||
+                                          task.paymentMethod!.toLowerCase().contains('online') ||
+                                          task.paymentMethod!.toLowerCase().contains('card')
+                                      ? Icons.lock_outline
+                                      : Icons.payments_outlined,
+                                  size: 14,
+                                  color: task.paymentMethod!.toLowerCase().contains('payhere') ||
+                                          task.paymentMethod!.toLowerCase().contains('online') ||
+                                          task.paymentMethod!.toLowerCase().contains('card')
+                                      ? CareDropTheme.royalBlue
+                                      : CareDropTheme.textSecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  task.paymentMethod!.toLowerCase().contains('payhere') ||
+                                          task.paymentMethod!.toLowerCase().contains('online') ||
+                                          task.paymentMethod!.toLowerCase().contains('card')
+                                      ? 'PayHere (Secured in Escrow)'
+                                      : 'Cash on Delivery',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: task.paymentMethod!.toLowerCase().contains('payhere') ||
+                                            task.paymentMethod!.toLowerCase().contains('online') ||
+                                            task.paymentMethod!.toLowerCase().contains('card')
+                                        ? CareDropTheme.royalBlue
+                                        : CareDropTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
+
+
 
                     const SizedBox(height: 12),
                     _DetailItem(
@@ -218,15 +268,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                         dropoffAddress: displayDropoffLocation,
                         isAccepted: isAccepted,
                       ),
-                    ] else if (task.latitude != null && task.longitude != null) ...[
-                      const SizedBox(height: 16),
-                      RoutePreviewMap(
-                        pickupLocation: LatLng(task.latitude!, task.longitude!),
-                        dropoffLocation: LatLng(task.latitude!, task.longitude!),
-                        pickupAddress: displayPickupLocation,
-                        isAccepted: isAccepted,
-                      ),
                     ],
+
 
                     // Show exact Room & Bed details once accepted
                     if (isAccepted && roomBedDetail != null && roomBedDetail.isNotEmpty) ...[

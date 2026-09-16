@@ -313,7 +313,7 @@ class HelperDashboardView extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Started ${activeTask.startTimeStr}',
+                                'Due: ${activeTask.deadline}',
                                 style: const TextStyle(
                                   color: CareDropTheme.textMuted,
                                   fontSize: 11,
@@ -332,7 +332,7 @@ class HelperDashboardView extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${activeTask.hospital} · ${activeTask.patientInfo}',
+                            activeTask.pickupAddress,
                             style: const TextStyle(
                               fontSize: 13,
                               color: CareDropTheme.textSecondary,
