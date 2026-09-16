@@ -7,7 +7,6 @@ import '../models/earnings_model.dart';
 import '../models/review_model.dart';
 import '../services/user_session_service.dart';
 import '../services/location_tracker_service.dart';
-import '../services/fcm_notification_service.dart';
 
 enum AppRole { landing, roleSelection, helper, patient }
 
@@ -26,7 +25,7 @@ class CareDropAppState extends ChangeNotifier {
     totalTasksCompleted: 0,
     todayEarnings: 0.0,
     verificationStatus: 'Verified',
-    isOnline: true,
+    isOnline: false,
   );
 
   // Settings
@@ -94,6 +93,14 @@ class CareDropAppState extends ChangeNotifier {
 
     UserSessionService.saveCachedUser(user);
     notifyListeners();
+
+    // Automatically trigger JIT permissions and go online on app launch for helpers
+    if (isHelperRole && !_helperUser.isOnline) {
+      // Small delay to ensure widget tree is built before requesting permissions
+      Future.delayed(const Duration(milliseconds: 500), () {
+        setOnlineAvailability(true);
+      });
+    }
   }
 
   void clearSession() {
@@ -132,11 +139,12 @@ class CareDropAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Toggles the online availability of the helper, starts/stops background location tracking, and syncs status to backend
-  void toggleOnlineAvailability({double? latitude, double? longitude}) {
-    final newStatus = !_helperUser.isOnline;
+  /// Sets the online availability of the helper, starts/stops background location tracking, and syncs status to backend
+  void setOnlineAvailability(bool isOnline, {double? latitude, double? longitude}) {
+    if (_helperUser.isOnline == isOnline && latitude == null && longitude == null) return;
+    
     _helperUser = _helperUser.copyWith(
-      isOnline: newStatus,
+      isOnline: isOnline,
       latitude: latitude ?? _helperUser.latitude,
       longitude: longitude ?? _helperUser.longitude,
     );
@@ -144,7 +152,7 @@ class CareDropAppState extends ChangeNotifier {
 
     if (_currentUserModel != null && _currentUserModel!.id.isNotEmpty) {
       final uid = _currentUserModel!.id;
-      if (newStatus) {
+      if (isOnline) {
         LocationTrackerService.startTracking(uid: uid);
       } else {
         LocationTrackerService.stopTracking(uid: uid);

@@ -163,7 +163,7 @@ class HelperDashboardView extends StatelessWidget {
 
                   // Online switch container & Rank Tier Badge
                   GestureDetector(
-                    onTap: () => appState.toggleOnlineAvailability(),
+                    onTap: () => appState.setOnlineAvailability(!appState.helperUser.isOnline),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -219,8 +219,8 @@ class HelperDashboardView extends StatelessWidget {
                             value: user.isOnline,
                             activeThumbColor: Colors.white,
                             activeTrackColor: const Color(0xFF10B981),
-                            onChanged: (val) =>
-                                appState.toggleOnlineAvailability(),
+                            onChanged: (_) =>
+                                appState.setOnlineAvailability(!appState.helperUser.isOnline),
                           ),
                         ],
                       ),
