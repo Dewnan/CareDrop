@@ -11,6 +11,8 @@ import '../../services/supabase_storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../../components/feedback_banner.dart';
 import '../../components/loading_indicator.dart';
+import '../../components/task/task_detail_row.dart';
+import '../../components/task/task_price_row.dart';
 import '../../services/payment_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/fcm_notification_service.dart';
@@ -442,48 +444,48 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                     const SizedBox(height: 16),
                     const Divider(height: 1),
                     const SizedBox(height: 16),
-                    _buildDetailRow('Pickup', pickupAddress),
+                    TaskDetailRow(label: 'Pickup', value: pickupAddress),
                     if (dropoffAddress.isNotEmpty &&
                         dropoffAddress != pickupAddress) ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow('Drop-off', dropoffAddress),
+                      TaskDetailRow(label: 'Drop-off', value: dropoffAddress),
                     ],
                     if (!data.isAsap &&
                         data.priority != 'Urgent' &&
                         data.priority != 'ASAP') ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow('Schedule', scheduleDisplay),
+                      TaskDetailRow(label: 'Schedule', value: scheduleDisplay),
                     ],
                     const SizedBox(height: 10),
-                    _buildDetailRow('Distance', distanceStr),
+                    TaskDetailRow(label: 'Distance', value: distanceStr),
                     if (data.description.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow('Description', data.description),
+                      TaskDetailRow(label: 'Description', value: data.description),
                     ],
                     if (data.itemName != null && data.itemName!.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow('Item / Medicine', data.itemName!),
+                      TaskDetailRow(label: 'Item / Medicine', value: data.itemName!),
                     ],
                     if (data.itemQuantity != null &&
                         data.itemQuantity!.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow('Quantity', data.itemQuantity!),
+                      TaskDetailRow(label: 'Quantity', value: data.itemQuantity!),
                     ],
                     if (data.itemSpecialInstructions != null &&
                         data.itemSpecialInstructions!.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow(
-                        'Item Notes',
-                        data.itemSpecialInstructions!,
+                      TaskDetailRow(
+                        label: 'Item Notes',
+                        value: data.itemSpecialInstructions!,
                       ),
                     ],
                     if (data.taskType == 'Patient Caregiver') ...[
                       const SizedBox(height: 10),
-                      _buildDetailRow('Duration', data.serviceDuration),
+                      TaskDetailRow(label: 'Duration', value: data.serviceDuration),
                       const SizedBox(height: 10),
-                      _buildDetailRow('Gender Pref.', data.preferredGender),
+                      TaskDetailRow(label: 'Gender Pref.', value: data.preferredGender),
                       const SizedBox(height: 10),
-                      _buildDetailRow('Language Req.', data.preferredLanguage),
+                      TaskDetailRow(label: 'Language Req.', value: data.preferredLanguage),
                     ],
                     if (data.attachmentFileName != null ||
                         data.localAttachmentPath != null ||
@@ -519,175 +521,174 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    InkWell(
-                      onTap: () => setState(
-                        () => _selectedPaymentMethod = 'Online Payment',
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              _selectedPaymentMethod.toLowerCase().contains(
-                                    'payhere',
-                                  ) ||
-                                  _selectedPaymentMethod.toLowerCase().contains(
-                                    'online',
-                                  ) ||
-                                  _selectedPaymentMethod.toLowerCase().contains(
-                                    'card',
-                                  )
-                              ? const Color(0xFFEFF6FF)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color:
-                                _selectedPaymentMethod.toLowerCase().contains(
-                                      'payhere',
-                                    ) ||
-                                    _selectedPaymentMethod
-                                        .toLowerCase()
-                                        .contains('online') ||
-                                    _selectedPaymentMethod
-                                        .toLowerCase()
-                                        .contains('card')
-                                ? CareDropTheme.royalBlue
-                                : CareDropTheme.cardBorderColor,
-                            width:
-                                _selectedPaymentMethod.toLowerCase().contains(
-                                      'payhere',
-                                    ) ||
-                                    _selectedPaymentMethod
-                                        .toLowerCase()
-                                        .contains('online') ||
-                                    _selectedPaymentMethod
-                                        .toLowerCase()
-                                        .contains('card')
-                                ? 1.5
-                                : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.payment,
-                              color: CareDropTheme.royalBlue,
-                              size: 24,
+                    RadioGroup<String>(
+                      groupValue: _selectedPaymentMethod,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _selectedPaymentMethod = val);
+                        }
+                      },
+                      child: Column(
+                        children: [
+                          InkWell(
+                            onTap: () => setState(
+                              () => _selectedPaymentMethod = 'Online Payment',
                             ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color:
+                                    _selectedPaymentMethod.toLowerCase().contains(
+                                          'payhere',
+                                        ) ||
+                                        _selectedPaymentMethod.toLowerCase().contains(
+                                          'online',
+                                        ) ||
+                                        _selectedPaymentMethod.toLowerCase().contains(
+                                          'card',
+                                        )
+                                    ? const Color(0xFFEFF6FF)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color:
+                                      _selectedPaymentMethod.toLowerCase().contains(
+                                            'payhere',
+                                          ) ||
+                                          _selectedPaymentMethod
+                                              .toLowerCase()
+                                              .contains('online') ||
+                                          _selectedPaymentMethod
+                                              .toLowerCase()
+                                              .contains('card')
+                                      ? CareDropTheme.royalBlue
+                                      : CareDropTheme.cardBorderColor,
+                                  width:
+                                      _selectedPaymentMethod.toLowerCase().contains(
+                                            'payhere',
+                                          ) ||
+                                          _selectedPaymentMethod
+                                              .toLowerCase()
+                                              .contains('online') ||
+                                          _selectedPaymentMethod
+                                              .toLowerCase()
+                                              .contains('card')
+                                      ? 1.5
+                                      : 1.0,
+                                ),
+                              ),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    'Online Payment (Demo Card)',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: CareDropTheme.textPrimary,
+                                  const Icon(
+                                    Icons.payment,
+                                    color: CareDropTheme.royalBlue,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Online Payment (Demo Card)',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: CareDropTheme.textPrimary,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Instant simulated card authorization held in Escrow',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: CareDropTheme.textSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Instant simulated card authorization held in Escrow',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: CareDropTheme.textSecondary,
-                                    ),
+                                  Radio<String>(
+                                    value: 'Online Payment',
+                                    activeColor: CareDropTheme.royalBlue,
                                   ),
                                 ],
                               ),
                             ),
-                            Radio<String>(
-                              value:
-                                  'Online Payment',
-                              groupValue: _selectedPaymentMethod,
-                              activeColor: CareDropTheme.royalBlue,
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _selectedPaymentMethod = val);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
 
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () => setState(
-                        () => _selectedPaymentMethod = 'Cash on Delivery',
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              _selectedPaymentMethod.toLowerCase().contains(
-                                'cash',
-                              )
-                              ? const Color(0xFFEFF6FF)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color:
-                                _selectedPaymentMethod.toLowerCase().contains(
-                                  'cash',
-                                )
-                                ? CareDropTheme.royalBlue
-                                : CareDropTheme.cardBorderColor,
-                            width:
-                                _selectedPaymentMethod.toLowerCase().contains(
-                                  'cash',
-                                )
-                                ? 1.5
-                                : 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.payments_outlined,
-                              color: CareDropTheme.royalBlue,
-                              size: 24,
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () => setState(
+                              () => _selectedPaymentMethod = 'Cash on Delivery',
                             ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color:
+                                    _selectedPaymentMethod.toLowerCase().contains(
+                                      'cash',
+                                    )
+                                    ? const Color(0xFFEFF6FF)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color:
+                                      _selectedPaymentMethod.toLowerCase().contains(
+                                        'cash',
+                                      )
+                                      ? CareDropTheme.royalBlue
+                                      : CareDropTheme.cardBorderColor,
+                                  width:
+                                      _selectedPaymentMethod.toLowerCase().contains(
+                                        'cash',
+                                      )
+                                      ? 1.5
+                                      : 1.0,
+                                ),
+                              ),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    'Cash on Delivery',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: CareDropTheme.textPrimary,
+                                  const Icon(
+                                    Icons.payments_outlined,
+                                    color: CareDropTheme.royalBlue,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Cash on Delivery',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: CareDropTheme.textPrimary,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Pay cash directly to helper upon task handover',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: CareDropTheme.textSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(height: 2),
-                                  Text(
-                                    'Pay cash directly to helper upon task handover',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: CareDropTheme.textSecondary,
-                                    ),
+                                  Radio<String>(
+                                    value: 'Cash on Delivery',
+                                    activeColor: CareDropTheme.royalBlue,
                                   ),
                                 ],
                               ),
                             ),
-                            Radio<String>(
-                              value: 'Cash on Delivery',
-                              groupValue: _selectedPaymentMethod,
-                              activeColor: CareDropTheme.royalBlue,
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _selectedPaymentMethod = val);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -718,16 +719,16 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildPriceRow(
-                      'Offered Budget',
-                      'LKR ${baseFee.toStringAsFixed(2)}',
+                    TaskPriceRow(
+                      label: 'Offered Budget',
+                      price: 'LKR ${baseFee.toStringAsFixed(2)}',
                     ),
                     const SizedBox(height: 8),
-                    _buildPriceRow('Payment Method', _selectedPaymentMethod),
+                    TaskPriceRow(label: 'Payment Method', price: _selectedPaymentMethod),
                     const SizedBox(height: 8),
-                    _buildPriceRow(
-                      'Service Platform Fee',
-                      isCashPayment
+                    TaskPriceRow(
+                      label: 'Service Platform Fee',
+                      price: isCashPayment
                           ? 'LKR 0.00 (Cash)'
                           : 'LKR ${platformFee.toStringAsFixed(2)}',
                     ),
@@ -810,62 +811,6 @@ class _PatientTaskConfirmScreenState extends State<PatientTaskConfirmScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 90,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: CareDropTheme.textMuted,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: CareDropTheme.textPrimary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Renders a single row in the payment summary table with label and right-aligned price or detail text.
-  Widget _buildPriceRow(String label, String price) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: CareDropTheme.textSecondary,
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            price,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: CareDropTheme.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

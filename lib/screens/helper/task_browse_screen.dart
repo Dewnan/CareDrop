@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../components/empty_state.dart';
+import '../../components/shimmer_loading.dart';
 import 'package:provider/provider.dart';
 import '../../components/offline_task_placeholder.dart';
 import '../../components/task_card_tile.dart';
@@ -110,7 +112,13 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
                 stream: TaskService.streamPendingTasks(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: 3,
+                      itemBuilder: (context, index) => ShimmerLoading.card(
+                        margin: const EdgeInsets.only(bottom: 16),
+                      ),
+                    );
                   }
 
                   final tasks = snapshot.data ?? [];
@@ -121,11 +129,10 @@ class _TaskBrowseScreenState extends State<TaskBrowseScreen> {
                   }).toList();
 
                   if (filteredTasks.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No pending tasks available right now.',
-                        style: TextStyle(color: CareDropTheme.textMuted),
-                      ),
+                    return const EmptyStateWidget(
+                      title: 'No Available Tasks',
+                      subtitle: 'There are currently no task requests nearby. Check back later!',
+                      icon: Icons.list_alt_rounded,
                     );
                   }
 

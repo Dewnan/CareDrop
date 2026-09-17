@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../components/feedback_banner.dart';
 import '../../components/loading_indicator.dart';
 import '../../components/route_preview_map.dart';
+import '../../components/task/task_detail_row.dart';
 import '../../models/task_model.dart';
 import '../../providers/app_state.dart';
 import '../../services/image_cache_service.dart';
@@ -247,18 +248,18 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
 
                     const SizedBox(height: 12),
-                    _DetailItem(
+                    TaskDetailRow(
                       label: 'Patient Name',
                       value: displayPatientName,
                     ),
                     const SizedBox(height: 12),
-                    _DetailItem(
+                    TaskDetailRow(
                       label: 'Pickup Location',
                       value: displayPickupLocation,
                     ),
                     if (displayDropoffLocation != displayPickupLocation && displayDropoffLocation.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      _DetailItem(
+                      TaskDetailRow(
                         label: 'Dropoff Location',
                         value: displayDropoffLocation,
                       ),
@@ -280,7 +281,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     // Show exact Room & Bed details once accepted
                     if (isAccepted && roomBedDetail != null && roomBedDetail.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      _DetailItem(
+                      TaskDetailRow(
                         label: 'Room & Bed No.',
                         value: roomBedDetail,
                       ),
@@ -312,7 +313,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
                     if (task.deadline.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      _DetailItem(
+                      TaskDetailRow(
                         label: 'Deadline',
                         value: task.deadline,
                       ),
@@ -353,15 +354,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                       ),
                       const SizedBox(height: 14),
                       if (task.itemName != null && task.itemName!.isNotEmpty) ...[
-                        _DetailItem(label: 'Item / Medicine Name', value: task.itemName!),
+                        TaskDetailRow(label: 'Item / Medicine Name', value: task.itemName!),
                         const SizedBox(height: 10),
                       ],
                       if (task.itemQuantity != null && task.itemQuantity!.isNotEmpty) ...[
-                        _DetailItem(label: 'Quantity / Dose', value: task.itemQuantity!),
+                        TaskDetailRow(label: 'Quantity / Dose', value: task.itemQuantity!),
                         const SizedBox(height: 10),
                       ],
                       if (task.itemSpecialInstructions != null && task.itemSpecialInstructions!.isNotEmpty) ...[
-                        _DetailItem(label: 'Item Special Notes', value: task.itemSpecialInstructions!),
+                        TaskDetailRow(label: 'Item Special Notes', value: task.itemSpecialInstructions!),
                       ],
                     ],
                   ),
@@ -400,15 +401,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                       ),
                       const SizedBox(height: 14),
                       if (task.serviceDuration != null && task.serviceDuration!.isNotEmpty) ...[
-                        _DetailItem(label: 'Service Duration', value: task.serviceDuration!),
+                        TaskDetailRow(label: 'Service Duration', value: task.serviceDuration!),
                         const SizedBox(height: 10),
                       ],
                       if (task.preferredGender != null && task.preferredGender!.isNotEmpty) ...[
-                        _DetailItem(label: 'Preferred Gender', value: task.preferredGender!),
+                        TaskDetailRow(label: 'Preferred Gender', value: task.preferredGender!),
                         const SizedBox(height: 10),
                       ],
                       if (task.preferredLanguage != null && task.preferredLanguage!.isNotEmpty) ...[
-                        _DetailItem(label: 'Required Language', value: task.preferredLanguage!),
+                        TaskDetailRow(label: 'Required Language', value: task.preferredLanguage!),
                       ],
                     ],
                   ),
@@ -862,45 +863,7 @@ class _AttachmentDirectPreview extends StatelessWidget {
   }
 }
 
-/// Renders a key-value detail item.
-class _DetailItem extends StatelessWidget {
-  final String label;
-  final String value;
 
-  const _DetailItem({
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: CareDropTheme.textMuted,
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              color: CareDropTheme.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 
 

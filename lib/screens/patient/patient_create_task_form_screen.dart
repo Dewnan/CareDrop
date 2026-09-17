@@ -7,6 +7,8 @@ import '../../models/task_creation_form_data.dart';
 import '../../services/geoapify_service.dart';
 import '../../theme/app_theme.dart';
 import '../../components/feedback_banner.dart';
+import '../../components/task_creation/task_type_selector_widget.dart';
+import '../../components/task_creation/task_details_form_section.dart';
 import 'patient_task_confirm_screen.dart';
 
 
@@ -363,78 +365,30 @@ class _PatientCreateTaskFormScreenState
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // 1. INLINE TASK TYPE SELECTOR HEADER
-              const Text(
-                'SELECT TASK TYPE',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: CareDropTheme.textSecondary,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 48,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _taskTypeOptions.length,
-                  itemBuilder: (context, index) {
-                    final optionName = _taskTypeOptions[index];
-                    final isSelected = _formData.taskType == optionName;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        showCheckmark: false,
-                        label: Text(
-                          optionName,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Colors.white : CareDropTheme.textPrimary,
-                          ),
-                        ),
-                        selected: isSelected,
-                        selectedColor: CareDropTheme.royalBlue,
-                        backgroundColor: Colors.white,
-                        onSelected: (val) {
-                          if (val) {
-                            setState(() {
-                              _formData.taskType = optionName;
-                            });
-                          }
-                        },
-                      ),
-                    );
-                  },
-                ),
+              TaskTypeSelectorWidget(
+                taskTypeOptions: _taskTypeOptions,
+                currentTaskType: _formData.taskType,
+                onTaskTypeChanged: (newType) {
+                  setState(() {
+                    _formData.taskType = newType;
+                  });
+                },
               ),
 
               const SizedBox(height: 20),
 
               // 2. TASK DETAILS & DESCRIPTION
-              _buildSectionHeader('1. TASK DETAILS & DESCRIPTION'),
-              const SizedBox(height: 8),
-              _buildCard([
-                _buildTextField(
-                  label: _isOtherTask ? 'Task Description (Optional)' : 'Task Description *',
-                  controller: _descriptionController,
-                  required: !_isOtherTask,
-                  hasError: _hasDescriptionError,
-                  maxLines: 3,
-                  hintText: 'Explain what the helper needs to do...',
-                  onChanged: (val) {
-                    if (_hasDescriptionError) setState(() => _hasDescriptionError = false);
-                  },
-                ),
-                const SizedBox(height: 12),
-                _buildTextField(
-                  label: 'Additional Instructions (Optional)',
-                  controller: _addInstructionsController,
-                  maxLines: 2,
-                  hintText: 'e.g. Contact upon arrival',
-                ),
-              ]),
+              TaskDetailsFormSection(
+                isOtherTask: _isOtherTask,
+                descriptionController: _descriptionController,
+                addInstructionsController: _addInstructionsController,
+                hasDescriptionError: _hasDescriptionError,
+                onDescriptionChanged: () {
+                  if (_hasDescriptionError) {
+                    setState(() => _hasDescriptionError = false);
+                  }
+                },
+              ),
 
               const SizedBox(height: 20),
 
