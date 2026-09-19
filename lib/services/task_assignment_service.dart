@@ -47,6 +47,15 @@ class TaskAssignmentService {
           if (status == AssignmentStatus.completed) 'completedAt': FieldValue.serverTimestamp(),
         });
       }
+
+      final directRef = _db.collection(_collection).doc(taskId);
+      final directSnap = await directRef.get();
+      if (directSnap.exists) {
+        await directRef.update({
+          'status': status.name,
+          if (status == AssignmentStatus.completed) 'completedAt': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
       debugPrint('Error updating assignment status: $e');
     }
