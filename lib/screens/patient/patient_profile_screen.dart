@@ -5,6 +5,7 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../components/user_avatar_widget.dart';
 import '../common/edit_profile_screen.dart';
+import '../common/help_center_screen.dart';
 import '../common/landing_screen.dart';
 
 
@@ -122,7 +123,18 @@ class PatientProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _buildMenuCard([
-                    _buildMenuItem(Icons.help_outline, 'Help Center'),
+                    _buildMenuItem(
+                      Icons.help_outline,
+                      'Help Center',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HelpCenterScreen(),
+                          ),
+                        );
+                      },
+                    ),
                     _buildMenuItem(
                       Icons.logout,
                       'Sign Out',

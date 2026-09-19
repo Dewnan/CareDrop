@@ -5,6 +5,7 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../components/user_avatar_widget.dart';
 import '../common/edit_profile_screen.dart';
+import '../common/help_center_screen.dart';
 import '../common/landing_screen.dart';
 import 'settings_screen.dart';
 import 'ratings_screen.dart';
@@ -143,7 +144,14 @@ class ProfileScreen extends StatelessWidget {
               items: [
                 _ProfileItem(
                   title: 'Help Center',
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HelpCenterScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _ProfileItem(
                   title: 'Settings',
